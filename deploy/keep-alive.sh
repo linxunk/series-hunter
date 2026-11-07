@@ -14,7 +14,7 @@ set -uo pipefail
 
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PORT=8787
-PROVIDER=serveo
+PROVIDER=localhost.run,serveo,localtunnel
 INTERVAL=45
 
 while [[ $# -gt 0 ]]; do
@@ -64,21 +64,58 @@ start_backend() {
 }
 
 start_tunnel() {
-  case "$PROVIDER" in
+  # PROVIDER 可以是逗号分隔的多个通道，逐个尝试直到某个成功
+  local IFS=','
+  local prov
+  for prov in $PROVIDER; do
+    [ -z "$prov" ] && continue
+    if start_tunnel_one "$prov"; then return 0; fi
+  done
+  return 1
+}
+
+start_tunnel_one() {
+  local prov="$1"
+  case "$prov" in
     none) log "未启用隧道（provider=none）"; return 0 ;;
     serveo) REMOTE="${TUNNEL_NAME:-80:localhost:${PORT}}"; HOST=serveo.net ;;
     localhost.run) REMOTE="${TUNNEL_NAME:-80:localhost:${PORT}}"; HOST=localhost.run ;;
-    *) log "未知 provider: $PROVIDER"; return 1 ;;
+    localtunnel) REMOTE=""; HOST=""; ;;
+    *) log "未知 provider: $prov"; return 1 ;;
   esac
-  log "建立隧道 ($PROVIDER)…"
-  setsid nohup ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=20 \
-      -o ServerAliveCountMax=10000 -o ExitOnForwardFailure=yes \
-      -R "$REMOTE" "$HOST" > "$TUNNEL_LOG" 2>&1 < /dev/null &
-  for _ in $(seq 1 20); do
+  log "建立隧道 ($prov)…"
+  if [ "$prov" = "localtunnel" ]; then
+    setsid nohup lt --port "$PORT" --local-host 127.0.0.1 > "$TUNNEL_LOG" 2>&1 < /dev/null &
+    for _ in $(seq 1 20); do
+      sleep 2
+      local lu
+      lu="$(tr -d '\r' < "$TUNNEL_LOG" 2>/dev/null | grep -oE 'https://[a-z0-9-]+\.loca\.lt' | head -1)"
+      if [ -n "$lu" ]; then
+        echo "$lu" > /tmp/series-hunter-tunnel.url
+        write_config "$lu"
+        log "隧道就绪（localtunnel）：$lu"
+        return 0
+      fi
+    done
+    log "localtunnel 隧道建立超时"
+    return 1
+  fi
+  local SSH_OPTS=(-o StrictHostKeyChecking=no -o ServerAliveInterval=20
+                  -o ServerAliveCountMax=10000 -o ExitOnForwardFailure=yes
+                  -o ConnectTimeout=15)
+  local KEY_OPT=()
+  # 部分服务端要求密钥；先免密，失败再带密钥重试
+  [[ -f "${SSH_KEY:-/root/.ssh/id_rsa}" ]] && KEY_OPT=(-i "${SSH_KEY:-/root/.ssh/id_rsa}" -o IdentitiesOnly=yes)
+  setsid nohup ssh "${SSH_OPTS[@]}" -R "$REMOTE" "$HOST" > "$TUNNEL_LOG" 2>&1 < /dev/null &
+  for _ in $(seq 1 30); do
     sleep 2
     local u
-    u="$(tr -d '\r' < "$TUNNEL_LOG" 2>/dev/null | grep -o 'https://[a-z0-9.-]*serveousercontent\.com' | head -1)"
-    [[ -z "$u" ]] && u="$(tr -d '\r' < "$TUNNEL_LOG" 2>/dev/null | grep -o 'https://[a-z0-9]*\.lhr\.life' | head -1)"
+    # 去掉 ANSI 转义序列后再提取地址（localhost.run 的横幅里带大量转义码）
+    local clean
+    clean="$(tr -d '\r' < "$TUNNEL_LOG" 2>/dev/null | sed 's/\x1b\[[0-9;]*[A-Za-z]//g')"
+    u="$(echo "$clean" | grep -oE 'https://[a-z0-9.-]*serveousercontent\.com' | head -1)"
+    [[ -z "$u" ]] && u="$(echo "$clean" | grep -oE 'https://[a-z0-9]+\.lhr\.life' | head -1)"
+    [[ -z "$u" ]] && u="$(echo "$clean" | grep -oE 'https://[a-z0-9.-]*loca\.lt' | head -1)"
     if [[ -n "$u" ]]; then
       echo "$u" > /tmp/series-hunter-tunnel.url
       write_config "$u"
@@ -86,6 +123,24 @@ start_tunnel() {
       return 0
     fi
   done
+  log "免密方式超时，改用密钥重试"
+  if [[ ${#KEY_OPT[@]} -gt 0 ]]; then
+    setsid nohup ssh "${SSH_OPTS[@]}" "${KEY_OPT[@]}" -R "$REMOTE" "$HOST" > "$TUNNEL_LOG" 2>&1 < /dev/null &
+    for _ in $(seq 1 20); do
+      sleep 2
+      local clean2
+      clean2="$(tr -d '\r' < "$TUNNEL_LOG" 2>/dev/null | sed 's/\x1b\[[0-9;]*[A-Za-z]//g')"
+      local u2
+      u2="$(echo "$clean2" | grep -oE 'https://[a-z0-9.-]*serveousercontent\.com' | head -1)"
+      [[ -z "$u2" ]] && u2="$(echo "$clean2" | grep -oE 'https://[a-z0-9]+\.lhr\.life' | head -1)"
+      if [[ -n "$u2" ]]; then
+        echo "$u2" > /tmp/series-hunter-tunnel.url
+        write_config "$u2"
+        log "隧道就绪（密钥方式）：$u2"
+        return 0
+      fi
+    done
+  fi
   log "隧道建立超时"
   return 1
 }

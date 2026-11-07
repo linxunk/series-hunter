@@ -70,6 +70,10 @@
       <label class="check"><input type="checkbox" id="selectAll" /> 全选</label>
       <label class="check"><input type="checkbox" id="invertSel" /> 反选</label>
       <button id="btnOnlyMissing" class="btn btn-mini" type="button">仅选未找到</button>
+      <label class="check autofill-toggle" title="打开剧集后，自动到其它平台寻找同集免费来源并下载保存">
+        <input type="checkbox" id="ckAutoFill" checked /> 自动补齐并下载
+      </label>
+      <button id="btnAutoFillNow" class="btn btn-mini hidden" type="button">↻ 立即补齐</button>
       <span id="selCount" class="muted">已选 0 集</span>
     </div>
 
@@ -205,6 +209,19 @@
         <input id="connectInput" type="text" placeholder="http://192.168.1.10:8787 或 https://hunter.example.com" autocomplete="off" />
       </label>
       <div id="connectStatus" class="muted"></div>
+      <div id="wakeBlock" class="wake-block">
+        <div class="wake-title">☁️ 云主机休眠了？一键唤醒</div>
+        <p class="muted">GitHub Codespaces 空闲会自动停机（端口随即 404）。填一次 GitHub 令牌（只保存在本机浏览器），之后点一下就能把它唤醒。</p>
+        <label class="field" style="width:100%">
+          <span style="width:auto;flex:1">GitHub 令牌</span>
+          <input id="ghTokenInput" type="password" placeholder="ghp_…（需含 codespace 权限）" autocomplete="off" />
+        </label>
+        <div class="wake-actions">
+          <button id="btnWake" class="btn btn-mini" type="button">⚡ 唤醒云主机</button>
+          <button id="btnWakeOpen" class="btn btn-mini btn-ghost" type="button">在 GitHub 打开</button>
+          <span id="wakeStatus" class="muted"></span>
+        </div>
+      </div>
     </div>
     <footer class="modal-foot">
       <span class="muted">留空则使用与页面同源的服务</span>

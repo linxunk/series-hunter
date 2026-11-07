@@ -10,6 +10,7 @@ const config = require('./config');
 const log = require('./util/log');
 const platforms = require('./platforms');
 const { resolveSeries } = require('./core/resolver');
+const { planAutofill, applyFill } = require('./core/autofill');
 const tasks = require('./core/tasks');
 const ytdlp = require('./core/ytdlp');
 
@@ -197,6 +198,51 @@ async function handleApi(req, res, parsed) {
     } catch (e) {
       log.warn('api', `解析失败 ${platform} ${target}: ${e.message}`);
       return sendError(res, 500, e.message);
+    }
+  }
+
+  if (pathname === '/api/autofill' && req.method === 'POST') {
+    try {
+      const body = await readBody(req);
+      if (!body.platform || !body.url) return sendError(res, 400, '缺少 platform 或 url');
+      const jobId = createJob('autofill', body);
+      runJob(jobId, async () => {
+        const series = await resolveSeries({ platform: body.platform, url: body.url });
+        if (!series.missing.length) {
+          return { series, plan: [], taskId: '', note: '没有缺失集，无需补齐' };
+        }
+        const fill = await planAutofill(series, require('./core/resolver').makeCtx(), {
+          maxItems: Number(body.maxItems) || 24,
+        });
+        applyFill(series, fill);
+        let taskId = '';
+        if (body.download !== false && fill.plan.length) {
+          const task = tasks.startTask({
+            title: `${series.title}（自动补齐）`,
+            platform: body.platform,
+            mode: body.mode === 'zip' ? 'zip' : 'files',
+            items: fill.plan.map((p) => ({
+              no: p.no,
+              title: p.kind === 'bundle' ? `${p.title}（${p.platformName}合集）` : `${p.title}（${p.platformName}）`,
+              url: p.url,
+              platform: p.platform,
+            })),
+          });
+          taskId = task.id;
+        }
+        return {
+          series,
+          plan: fill.plan,
+          stillMissing: fill.stillMissing,
+          taskId,
+          note: fill.plan.length
+            ? `已从其它平台找到 ${Object.keys(fill.covered).length} 集的来源`
+            : '其它平台暂未找到可用的同集免费来源',
+        };
+      });
+      return sendJson(res, 200, { ok: true, jobId });
+    } catch (e) {
+      return sendError(res, 400, e.message);
     }
   }
 

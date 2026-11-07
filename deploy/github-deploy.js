@@ -84,13 +84,18 @@ async function ensureRepo() {
 
 /* ---------------- 2. 推送代码 ---------------- */
 
-const SKIP_DIRS = new Set(['node_modules', '.git', 'downloads', 'data']);
+const SKIP_DIRS = new Set(['node_modules', '.git', 'downloads', 'data', 'vendor']);
 const SKIP_FILES = new Set(['series-hunter.zip']);
 
 function collect(dir, base = '') {
   const entries = [];
   for (const name of fs.readdirSync(dir)) {
     if (SKIP_DIRS.has(name)) continue;
+    // .github/workflows 需要 workflow 权限，令牌没有时会被 GitHub 拒绝（404）
+    if (base === '.github' && name === 'workflows') {
+      console.log('! 跳过 .github/workflows（需要 workflow scope，请手动在 GitHub 网页添加）');
+      continue;
+    }
     const abs = path.join(dir, name);
     const rel = base ? `${base}/${name}` : name;
     const st = fs.statSync(abs);

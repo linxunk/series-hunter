@@ -8,7 +8,12 @@ const log = require('../util/log');
 
 function ytdlpBin() {
   const cfg = load();
-  return cfg.ytdlpPath || process.env.YT_DLP_PATH || 'yt-dlp';
+  if (cfg.ytdlpPath) return cfg.ytdlpPath;
+  if (process.env.YT_DLP_PATH) return process.env.YT_DLP_PATH;
+  // 项目内置的 yt-dlp（tools/yt-dlp 会自动带上 vendor/ 的 PYTHONPATH）
+  const bundled = path.join(__dirname, '..', '..', 'tools', 'yt-dlp');
+  if (fs.existsSync(bundled)) return bundled;
+  return 'yt-dlp';
 }
 
 function buildCookieArgs(cookie) {

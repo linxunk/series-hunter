@@ -15,6 +15,9 @@
     pollTimer: null,
     lastTask: null,
     searching: false,
+    autoFill: localStorage.getItem('sh_autofill') !== '0',
+    retryTimer: null,
+    autofilling: false,
   };
 
   /* ---------------- 通用工具 ---------------- */
@@ -96,6 +99,10 @@
     if (!modal) return;
     $('#connectInput').value = apiBase();
     $('#connectStatus').textContent = '';
+    const tk = $('#ghTokenInput');
+    if (tk) tk.value = ghToken();
+    const ws = $('#wakeStatus');
+    if (ws) ws.textContent = '';
     modal.classList.remove('hidden');
     setTimeout(() => $('#connectInput').focus(), 60);
   }
@@ -157,6 +164,76 @@
       $('#engineBadge').className = 'badge badge-warn';
       toast(e.message);
       askConnect();
+      autoRetry();
+    }
+  }
+
+  /** 后端不可用时自动轮询等待云主机上线 */
+  function autoRetry() {
+    if (state.retryTimer) return;
+    state.retryTimer = setInterval(async () => {
+      try {
+        const h = await fetch(apiUrl('/api/health'), { cache: 'no-store' });
+        if (h.ok) window.location.reload();
+      } catch (e) {
+        /* 继续等 */
+      }
+    }, 8000);
+  }
+
+  /* ---------------- 云主机唤醒（GitHub Codespaces） ---------------- */
+
+  function ghToken() {
+    return localStorage.getItem('sh_gh_token') || '';
+  }
+
+  function codespaceInfo() {
+    const cfg = window.APP_CONFIG || {};
+    return { name: cfg.codespace || '', port: cfg.codespacePort || 8787 };
+  }
+
+  /** 唤醒 Codespaces：调用 start 接口刷新空闲计时器 / 拉起已停机的实例 */
+  async function wakeCodespace() {
+    const { name } = codespaceInfo();
+    const token = ghToken();
+    const status = $('#wakeStatus');
+    if (!name) {
+      if (status) status.textContent = '未配置 Codespaces';
+      return;
+    }
+    if (!token) {
+      if (status) status.textContent = '请先填入 GitHub 令牌';
+      return;
+    }
+    if (status) status.textContent = '正在唤醒…';
+    try {
+      const res = await fetch(`https://api.github.com/user/codespaces/${encodeURIComponent(name)}/start`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || `HTTP ${res.status}`);
+      }
+      if (status) status.textContent = '唤醒指令已发送，正在等待上线…';
+      // 等待后端就绪
+      for (let i = 0; i < 40; i += 1) {
+        await new Promise((r) => setTimeout(r, 5000));
+        try {
+          const h = await fetch(apiUrl('/api/health'), { cache: 'no-store' });
+          if (h.ok) {
+            if (status) status.textContent = '云主机已上线 ✓';
+            window.location.reload();
+            return;
+          }
+        } catch (e) {
+          /* 继续等 */
+        }
+        if (status && i % 4 === 3) status.textContent = `等待云主机上线…（${(i + 1) * 5}s）`;
+      }
+      if (status) status.textContent = '仍在等待，请稍后再试';
+    } catch (e) {
+      if (status) status.textContent = `唤醒失败：${e.message}`;
     }
   }
 
@@ -302,6 +379,9 @@
       const series = await runJob({ type: 'series', platform, url });
       state.series = series;
       renderSeries();
+      if (state.autoFill && (series.missing || []).length) {
+        autoFill(false);
+      }
     } catch (e) {
       $('#summaryBox').innerHTML = `<div class="summary-card"><span class="sum-title">解析失败</span><div>${escapeHtml(e.message)}</div></div>`;
       $('#episodeList').innerHTML = '';
@@ -337,6 +417,66 @@
     } finally {
       state.searching = false;
     }
+  }
+
+  /** 自动补齐：去其它平台找同集免费来源并下载保存 */
+  async function autoFill(manual) {
+    if (!state.series || state.autofilling) return;
+    state.autofilling = true;
+    const s = state.series;
+    try {
+      const job = await api('/api/autofill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform: s.platform, url: s.url, download: true, mode: 'files' }),
+      });
+      const result = await pollAutofill(job.jobId);
+      if (result && result.series) {
+        state.series = result.series;
+        renderSeries();
+      }
+      const n = (state.series.filled || []).length;
+      toast(
+        n
+          ? `已从其它平台补齐 ${n} 集，正在下载保存…`
+          : (result && result.note) || '其它平台暂未找到可用的同集免费来源',
+        4000,
+      );
+      if (result && result.taskId) {
+        $('#progressModal').classList.remove('hidden');
+        $('#progressBody').innerHTML = '<div class="muted"><span class="spinner"></span> 自动补齐下载任务已创建…</div>';
+        pollTask(result.taskId);
+      }
+    } catch (e) {
+      toast('自动补齐失败：' + e.message);
+    } finally {
+      state.autofilling = false;
+    }
+  }
+
+  function pollAutofill(jobId) {
+    return new Promise((resolve, reject) => {
+      let tries = 0;
+      const timer = setInterval(async () => {
+        tries += 1;
+        try {
+          const data = await api(`/api/job?jobId=${encodeURIComponent(jobId)}`);
+          if (data.state === 'done') {
+            clearInterval(timer);
+            resolve(data.series);
+          } else if (data.state === 'error') {
+            clearInterval(timer);
+            reject(new Error(data.error || '自动补齐失败'));
+          } else if (tries > 400) {
+            clearInterval(timer);
+            reject(new Error('自动补齐超时'));
+          }
+        } catch (e) {
+          clearInterval(timer);
+          reject(e);
+        }
+      }, 1500);
+    });
   }
 
   /** 提交长耗时任务并轮询结果（短请求轮询，避免长连接被代理按超时切断） */
@@ -431,8 +571,10 @@
       no.className = 'ep-no';
       no.textContent = `第${ep.no}集`;
       const badge = document.createElement('span');
-      badge.className = 'ep-badge ' + (ep.available ? 'ep-ok' : alt ? 'ep-alt' : 'ep-no2');
-      badge.textContent = ep.available ? '可下载' : alt ? '可补齐' : '未找到';
+      const filled = ep.filledBy;
+      badge.className = 'ep-badge ' + (filled ? 'ep-filled' : ep.available ? 'ep-ok' : alt ? 'ep-alt' : 'ep-no2');
+      badge.textContent = filled ? '已补齐' : ep.available ? '可下载' : alt ? '可补齐' : '未找到';
+      if (filled) badge.title = `${filled.platformName}：${filled.title}`;
       if (ep.vip) {
         const vip = document.createElement('span');
         vip.className = 'ep-badge ep-vip';
@@ -509,14 +651,15 @@
         return;
       }
       if (state.selected.has(`ep:${index}`) && ep.available) {
+        const f = ep.filledBy;
         items.push({
           no: ep.no,
-          title: ep.title,
-          url: ep.url,
+          title: f ? `${ep.title}（${f.platformName}补齐）` : ep.title,
+          url: f ? f.url : ep.url,
           directUrl: ep.directUrl || '',
-          tvId: ep.tvId || '',
-          vid: ep.vid || '',
-          platform: state.series.platform,
+          tvId: f ? '' : ep.tvId || '',
+          vid: f ? '' : ep.vid || '',
+          platform: f ? f.platform : state.series.platform,
           index,
         });
       }
@@ -906,7 +1049,24 @@
     renderParsers(parsers);
   };
   $('#btnBackend').onclick = askConnect;
+  $('#ckAutoFill').checked = state.autoFill;
+  $('#ckAutoFill').onchange = (e) => {
+    state.autoFill = e.target.checked;
+    localStorage.setItem('sh_autofill', e.target.checked ? '1' : '0');
+    if (e.target.checked && state.series && (state.series.missing || []).length) autoFill(false);
+  };
+  $('#btnAutoFillNow').onclick = () => autoFill(true);
   $('#btnConnectGo').onclick = doConnect;
+  $('#btnWake').onclick = () => {
+    const v = $('#ghTokenInput').value.trim();
+    if (v) localStorage.setItem('sh_gh_token', v);
+    wakeCodespace();
+  };
+  $('#btnWakeOpen').onclick = () => {
+    const { name } = codespaceInfo();
+    if (!name) return toast('未配置 Codespaces');
+    window.open(`https://github.com/codespaces/${name}`, '_blank', 'noopener');
+  };
   $('#btnCloseConnect').onclick = () => $('#connectModal').classList.add('hidden');
   $('#connectInput').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') doConnect();

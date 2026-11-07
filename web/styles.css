@@ -495,3 +495,17 @@ button, input, select { font-family: inherit; }
   .foot-actions { width: 100%; }
   .foot-actions .btn { flex: 1; }
 }
+
+.ep-filled { background: rgba(124,92,255,.22); color: #c3b6ff; }
+.autofill-toggle { padding: 4px 10px; border: 1px solid var(--line); border-radius: 9px; }
+.autofill-toggle input { accent-color: var(--brand); }
+
+.wake-block {
+  border: 1px dashed rgba(124, 92, 255, .45);
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: rgba(124, 92, 255, .07);
+}
+.wake-title { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+.wake-block p { margin: 0 0 10px; line-height: 1.7; }
+.wake-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
