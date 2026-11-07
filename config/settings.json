@@ -1,0 +1,23 @@
+{
+  "cookies": {
+    "bilibili": "",
+    "iqiyi": "",
+    "mgtv": "",
+    "qq": "",
+    "youku": ""
+  },
+  "parsers": [
+    {
+      "name": "示例解析服务",
+      "url": "",
+      "enabled": false
+    }
+  ],
+  "downloadDir": "./downloads",
+  "quality": "best",
+  "mergeVideo": true,
+  "concurrency": 2,
+  "taskTimeoutMs": 1800000,
+  "requestTimeoutMs": 20000,
+  "fallbackSearchEngine": "auto"
+}

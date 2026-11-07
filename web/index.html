@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0b1020" />
+<title>剧集猎人 · 多平台剧集聚合下载</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='50' font-size='50'%3E%F0%9F%8E%AC%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-logo">🎬</span>
+    <div class="brand-text">
+      <h1>剧集猎人</h1>
+      <p>爱奇艺 · 芒果TV · 哔哩哔哩 · 腾讯视频 · 优酷　聚合检索与批量下载</p>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <span id="engineBadge" class="badge badge-muted" title="下载引擎状态">检测中…</span>
+    <button id="btnBackend" class="btn btn-ghost btn-mini" type="button" title="设置后端服务器地址">🔌 后端</button>
+    <button id="btnSettings" class="btn btn-ghost" type="button">⚙ 设置</button>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="hero">
+    <form id="searchForm" class="search-box" autocomplete="off">
+      <span class="search-icon">🔍</span>
+      <input id="searchInput" type="search" placeholder="输入想看的剧名，例如：庆余年" aria-label="剧名" />
+      <button id="btnSearch" class="btn btn-primary" type="submit">搜索</button>
+    </form>
+    <div class="chips" id="platformChips"></div>
+    <p class="tip">小提示：勾选平台可缩小搜索范围；找到剧集后点击「查看全部剧集」，系统会自动比对集数并列出缺失集。</p>
+  </section>
+
+  <section id="resultSection" class="panel hidden">
+    <div class="panel-head">
+      <h2>搜索结果</h2>
+      <span id="resultMeta" class="muted"></span>
+    </div>
+    <div id="resultList" class="grid"></div>
+  </section>
+
+  <section id="emptySection" class="panel empty hidden">
+    <div class="empty-art">🔍</div>
+    <p>输入剧名开始检索，支持多平台聚合。</p>
+  </section>
+</main>
+
+<!-- ============ 剧集详情抽屉 ============ -->
+<div id="drawer" class="drawer hidden" role="dialog" aria-modal="true">
+  <div class="drawer-mask" data-close="1"></div>
+  <aside class="drawer-panel">
+    <header class="drawer-head">
+      <div class="drawer-title">
+        <h3 id="drawerTitle">剧集</h3>
+        <span id="drawerPlatform" class="pill">-</span>
+      </div>
+      <button class="btn btn-ghost btn-icon" data-close="1" type="button" aria-label="关闭">✕</button>
+    </header>
+
+    <div id="summaryBox" class="summary">
+      <div class="summary-loading">正在解析剧集列表…</div>
+    </div>
+
+    <div class="toolbar">
+      <label class="check"><input type="checkbox" id="selectAll" /> 全选</label>
+      <label class="check"><input type="checkbox" id="invertSel" /> 反选</label>
+      <button id="btnOnlyMissing" class="btn btn-mini" type="button">仅选未找到</button>
+      <span id="selCount" class="muted">已选 0 集</span>
+    </div>
+
+    <div id="episodeList" class="episodes"></div>
+
+    <footer class="drawer-foot">
+      <div class="foot-info">
+        <strong id="footCount">已选 0 集</strong>
+        <span id="footHint" class="muted">选择剧集后可下载单集或打包为 ZIP</span>
+      </div>
+      <div class="foot-actions">
+        <button id="btnDownloadFiles" class="btn btn-secondary" type="button">⬇ 下载所选</button>
+        <button id="btnDownloadZip" class="btn btn-primary" type="button">📦 打包下载 ZIP</button>
+      </div>
+    </footer>
+  </aside>
+</div>
+
+<!-- ============ 底部操作栏 ============ -->
+<div id="actionBar" class="action-bar hidden">
+  <div class="action-inner">
+    <div class="action-info">
+      <strong id="barCount">已选 0 集</strong>
+      <span id="barHint" class="muted">选择剧集后可下载单集或打包为 ZIP</span>
+    </div>
+    <div class="action-buttons">
+      <button id="barDownloadFiles" class="btn btn-secondary" type="button">⬇ 下载所选</button>
+      <button id="barDownloadZip" class="btn btn-primary" type="button">📦 下载 ZIP</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 下载进度 ============ -->
+<div id="progressModal" class="modal hidden" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <header class="modal-head">
+      <h3>下载任务</h3>
+      <button id="btnCloseProgress" class="btn btn-ghost btn-icon" type="button" aria-label="关闭">✕</button>
+    </header>
+    <div id="progressBody" class="modal-body"></div>
+    <footer class="modal-foot">
+      <span id="progressSummary" class="muted">准备中…</span>
+      <button id="btnSaveZip" class="btn btn-primary hidden" type="button">💾 保存 ZIP 到本地</button>
+    </footer>
+  </div>
+</div>
+
+<!-- ============ 设置 ============ -->
+<div id="settingsModal" class="modal hidden" role="dialog" aria-modal="true">
+  <div class="modal-card modal-card-wide">
+    <header class="modal-head">
+      <h3>设置</h3>
+      <button id="btnCloseSettings" class="btn btn-ghost btn-icon" type="button" aria-label="关闭">✕</button>
+    </header>
+    <div class="modal-body">
+      <section class="setting-block">
+        <h4>会员 Cookie（可选）</h4>
+        <p class="muted">填入<strong>你自己账号</strong>的 Cookie 后，站内已购会员剧集也能直接下载。留空则免费剧集照常下载，VIP 集会标记为「未找到」并可走第三方解析。</p>
+        <label class="field"><span>哔哩哔哩</span><input id="ckBilibili" type="password" placeholder="SESSDATA=...; bili_jct=..." autocomplete="off" /></label>
+        <label class="field"><span>爱奇艺</span><input id="ckIqiyi" type="password" placeholder="QC005=...; __dfduid=..." autocomplete="off" /></label>
+        <label class="field"><span>芒果TV</span><input id="ckMgtv" type="password" placeholder="__dfduid=...; tvToken=..." autocomplete="off" /></label>
+        <label class="field"><span>腾讯视频</span><input id="ckQq" type="password" placeholder="vqq_..." autocomplete="off" /></label>
+        <label class="field"><span>优酷</span><input id="ckYouku" type="password" placeholder="..." autocomplete="off" /></label>
+      </section>
+
+      <section class="setting-block">
+        <h4>第三方解析服务</h4>
+        <p class="muted">当整部剧都需要会员、且没有会员 Cookie 时，可启用第三方解析服务。URL 模板中使用 <code>{url}</code> 占位符表示待解析的视频页地址。</p>
+        <div id="parserList" class="parser-list"></div>
+        <button id="btnAddParser" class="btn btn-mini" type="button">＋ 添加解析服务</button>
+      </section>
+
+      <section class="setting-block">
+        <h4>下载</h4>
+        <label class="field"><span>清晰度</span>
+          <select id="selQuality">
+            <option value="best">最高可用</option>
+            <option value="1080">1080P</option>
+            <option value="720">720P</option>
+            <option value="480">480P</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="ckMerge" checked /> 合并音视频（需要 ffmpeg）</label>
+        <label class="field"><span>兜底搜索引擎</span>
+          <select id="selEngine">
+            <option value="auto">自动</option>
+            <option value="baidu">百度</option>
+            <option value="bing">Bing</option>
+          </select>
+        </label>
+      </section>
+    </div>
+    <footer class="modal-foot">
+      <span id="settingsMsg" class="muted"></span>
+      <button id="btnSaveSettings" class="btn btn-primary" type="button">保存设置</button>
+    </footer>
+  </div>
+</div>
+
+<!-- ============ iOS 保存相册引导 ============ -->
+<div id="iosSheet" class="modal hidden" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <header class="modal-head">
+      <h3>保存到相册</h3>
+      <button id="btnCloseIos" class="btn btn-ghost btn-icon" type="button" aria-label="关闭">✕</button>
+    </header>
+    <div class="modal-body">
+      <p class="muted">iOS 系统中，点击下方视频后<strong>长按视频 → 存储到照片</strong>即可保存到相册；也可以使用分享按钮导出到「文件」或微信等应用。</p>
+      <video id="iosVideo" controls playsinline class="ios-video"></video>
+      <div class="ios-actions">
+        <button id="btnIosShare" class="btn btn-secondary" type="button">↗ 分享 / 存储到文件</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<!-- ============ 连接后端 ============ -->
+<div id="connectModal" class="modal hidden" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <header class="modal-head">
+      <h3>连接你的服务器</h3>
+      <button id="btnCloseConnect" class="btn btn-ghost btn-icon" type="button" aria-label="关闭">✕</button>
+    </header>
+    <div class="modal-body">
+      <p class="muted">
+        剧集猎人的<strong>下载后端</strong>（负责解析与下载）需要部署在服务器上。
+        这里填入后端地址后，页面即可正常工作；地址会保存在本机浏览器中。
+      </p>
+      <label class="field" style="width:100%">
+        <span style="width:auto;flex:1">后端地址</span>
+        <input id="connectInput" type="text" placeholder="http://192.168.1.10:8787 或 https://hunter.example.com" autocomplete="off" />
+      </label>
+      <div id="connectStatus" class="muted"></div>
+    </div>
+    <footer class="modal-foot">
+      <span class="muted">留空则使用与页面同源的服务</span>
+      <button id="btnConnectGo" class="btn btn-primary" type="button">连接</button>
+    </footer>
+  </div>
+</div>
+
+<script src="/config.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

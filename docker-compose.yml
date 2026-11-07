@@ -1,0 +1,24 @@
+services:
+  series-hunter:
+    build: .
+    image: series-hunter:latest
+    container_name: series-hunter
+    restart: unless-stopped
+    ports:
+      # 左边是宿主机端口，可自行修改；用 nginx 反代时建议只对本机开放
+      - "8787:8787"
+    environment:
+      PORT: "8787"
+      HOST: "0.0.0.0"
+      DOWNLOAD_DIR: "/data/downloads"
+      # 前端与后端分开部署时，填前端地址，例如 https://cdn.example.com
+      CORS_ORIGIN: "${CORS_ORIGIN:-}"
+      TZ: "Asia/Shanghai"
+    volumes:
+      # 视频与 ZIP 落盘目录，宿主机 /data/downloads
+      - ./data/downloads:/data/downloads
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
