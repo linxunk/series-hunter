@@ -234,11 +234,16 @@ async function publishPort(cs) {
 /* ---------------- 主流程 ---------------- */
 
 (async () => {
+  const pushOnly = process.argv.includes('--push-only');
   console.log('==============================================');
   console.log('  剧集猎人 → GitHub Codespaces 部署');
   console.log('==============================================');
   const repo = await ensureRepo();
   await pushCode(repo);
+  if (pushOnly) {
+    console.log('✓ 仅推送代码完成');
+    return;
+  }
   const cs = await findOrCreateCodespace(repo);
   await waitRunning(cs);
   console.log('   等待应用在容器内启动（装 yt-dlp / ffmpeg 需要 1-3 分钟）…');

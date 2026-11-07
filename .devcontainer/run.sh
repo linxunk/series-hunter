@@ -6,7 +6,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 export PORT="${PORT:-8787}"
 export HOST=0.0.0.0
-export DOWNLOAD_DIR="${DOWNLOAD_DIR:-/workspace/series-hunter/downloads}"
+export DOWNLOAD_DIR="${DOWNLOAD_DIR:-$PWD/downloads}"
 export CORS_ORIGIN="${CORS_ORIGIN:-*}"
 export TZ=Asia/Shanghai
 

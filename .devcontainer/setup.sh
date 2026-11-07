@@ -4,15 +4,16 @@ set -euo pipefail
 
 echo "==> 安装系统依赖"
 sudo apt-get update -qq
-sudo apt-get install -y -qq ffmpeg python3 python3-pip curl >/dev/null
+sudo apt-get install -y -qq ffmpeg python3 python3-pip curl >/dev/null || echo '⚠ 部分系统包安装失败（不影响 yt-dlp 下载）'
 
 echo "==> 安装 yt-dlp"
-pip3 install --quiet --break-system-packages -U yt-dlp 2>/dev/null || pip3 install --quiet -U yt-dlp
+pip3 install --quiet --break-system-packages -U yt-dlp 2>/dev/null || pip3 install --quiet -U yt-dlp || sudo pip3 install --quiet --break-system-packages -U yt-dlp
 command -v yt-dlp >/dev/null 2>&1 || sudo curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -o /usr/local/bin/yt-dlp
 sudo chmod +x /usr/local/bin/yt-dlp
 
 echo "==> 准备目录"
-mkdir -p /workspace/series-hunter/downloads
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+mkdir -p ./downloads
 
 echo "==> 环境自检"
 cd /workspace/series-hunter

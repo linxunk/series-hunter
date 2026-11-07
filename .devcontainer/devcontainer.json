@@ -6,20 +6,23 @@
       "version": "20"
     }
   },
-  "forwardPorts": [8787],
+  "forwardPorts": [
+    8787
+  ],
   "portsAttributes": {
     "8787": {
       "label": "series-hunter",
       "onAutoForward": "notify"
     }
   },
-  "postCreateCommand": "bash .devcontainer/setup.sh",
-  "postStartCommand": "bash .devcontainer/run.sh",
+  "postCreateCommand": "bash .devcontainer/setup.sh || true",
+  "postStartCommand": "nohup bash .devcontainer/run.sh > /tmp/series-hunter.log 2>&1 &",
   "stopInterval": "360",
   "remoteUser": "vscode",
   "customizations": {
     "vscode": {
       "extensions": []
     }
-  }
+  },
+  "shutdownAction": "stopContainer"
 }
