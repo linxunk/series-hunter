@@ -6,14 +6,27 @@ const path = require('path');
 const { load } = require('../config');
 const log = require('../util/log');
 
-function ytdlpBin() {
+/**
+ * 找到可用的 yt-dlp：
+ *   1) 显式配置 YT_DLP_PATH
+ *   2) 项目内置 tools/yt-dlp（会自动带上 vendor/ 的 PYTHONPATH）
+ *   3) 系统里的 yt-dlp
+ *   4) python3 -m yt_dlp（pip 装过但没进 PATH 时兜底）
+ * 返回 { cmd, args }，args 是固定前缀参数。
+ */
+function ytdlpCmd() {
   const cfg = load();
-  if (cfg.ytdlpPath) return cfg.ytdlpPath;
-  if (process.env.YT_DLP_PATH) return process.env.YT_DLP_PATH;
-  // 项目内置的 yt-dlp（tools/yt-dlp 会自动带上 vendor/ 的 PYTHONPATH）
+  if (cfg.ytdlpPath) return { cmd: cfg.ytdlpPath, args: [] };
+  if (process.env.YT_DLP_PATH) return { cmd: process.env.YT_DLP_PATH, args: [] };
   const bundled = path.join(__dirname, '..', '..', 'tools', 'yt-dlp');
-  if (fs.existsSync(bundled)) return bundled;
-  return 'yt-dlp';
+  if (fs.existsSync(bundled)) return { cmd: bundled, args: [] };
+  if (fs.existsSync('/usr/local/bin/yt-dlp')) return { cmd: '/usr/local/bin/yt-dlp', args: [] };
+  if (fs.existsSync('/usr/bin/yt-dlp')) return { cmd: '/usr/bin/yt-dlp', args: [] };
+  return { cmd: 'python3', args: ['-m', 'yt_dlp'] };
+}
+
+function ytdlpBin() {
+  return ytdlpCmd().cmd;
 }
 
 function buildCookieArgs(cookie) {
@@ -181,9 +194,11 @@ async function download(url, opts = {}) {
 function run(args, opts = {}) {
   return new Promise((resolve) => {
     const bin = ytdlpBin();
+    void bin;
     let child;
     try {
-      child = spawn(bin, args, { cwd: opts.cwd });
+      const spec = ytdlpCmd();
+      child = spawn(spec.cmd, [...spec.args, ...args], { cwd: opts.cwd });
     } catch (e) {
       resolve({ code: -1, stdout: '', stderr: `无法启动 ${bin}: ${e.message}` });
       return;

@@ -21,6 +21,15 @@ printf "root="; curl -s -o /dev/null -m 8 -w "%{http_code}" "http://127.0.0.1:${
 printf "appjs="; curl -s -o /dev/null -m 8 -w "%{http_code}" "http://127.0.0.1:${PORT}/app.js" 2>/dev/null; echo
 printf "health="; curl -s -m 8 "http://127.0.0.1:${PORT}/api/health" 2>/dev/null | head -c 160; echo
 
+# ---- 自愈：yt-dlp 不在就装 ----
+if ! command -v yt-dlp >/dev/null 2>&1 && ! python3 -c "import yt_dlp" >/dev/null 2>&1; then
+  echo "=== 动作：安装 yt-dlp ==="
+  (pip3 install --quiet --break-system-packages -U yt-dlp 2>/dev/null \
+    || pip3 install --quiet -U yt-dlp 2>/dev/null \
+    || curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -o /usr/local/bin/yt-dlp && sudo chmod +x /usr/local/bin/yt-dlp) || true
+  echo "yt-dlp: $(yt-dlp --version 2>&1 | head -1 || echo 仍不可用)"
+fi
+
 # ---- 自愈：进程不在就启动 ----
 if ! pgrep -f "server/index.js" >/dev/null 2>&1; then
   echo "=== 动作：应用未运行，正在启动 ==="
