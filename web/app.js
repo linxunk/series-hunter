@@ -391,10 +391,24 @@
     btn.innerHTML = '<span class="spinner"></span> 搜索中';
     $('#emptySection').classList.add('hidden');
     try {
-      const data = await api(
-        `/api/search?q=${encodeURIComponent(q)}&platforms=${state.activePlatforms.join(',')}`,
-      );
-      state.results = data.results || [];
+      // 走异步任务：避免长请求被隧道/代理按空闲超时切断
+      let results = null;
+      try {
+        const job = await api('/api/job', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'search', q, platforms: state.activePlatforms }),
+        });
+        const r = await pollJob(job.jobId, 400);
+        results = (r && r.results) || [];
+      } catch (e) {
+        // 回退：直连搜索接口
+        const data = await api(
+          `/api/search?q=${encodeURIComponent(q)}&platforms=${state.activePlatforms.join(',')}`,
+        );
+        results = data.results || [];
+      }
+      state.results = results;
       renderResults();
     } catch (e) {
       toast(e.message);

@@ -259,12 +259,18 @@ async function handleApi(req, res, parsed) {
   if (pathname === '/api/job' && req.method === 'POST') {
     try {
       const body = await readBody(req);
-      const type = body.type === 'cross' ? 'cross' : 'series';
+      const type = body.type === 'cross' ? 'cross' : body.type === 'search' ? 'search' : 'series';
       if (!body.platform || !body.url) return sendError(res, 400, '缺少 platform 或 url');
       const jobId = createJob(type, body);
-      runJob(jobId, () =>
-        resolveSeries({ platform: body.platform, url: body.url, cross: type === 'cross' }),
-      );
+      runJob(jobId, async () => {
+        if (type === 'search') {
+          const results = await platforms.searchAll(body.q || '', body.platforms || [], {
+            config: config.load(),
+          });
+          return { results };
+        }
+        return resolveSeries({ platform: body.platform, url: body.url, cross: type === 'cross' });
+      });
       return sendJson(res, 200, { ok: true, jobId, type });
     } catch (e) {
       return sendError(res, 400, e.message);
