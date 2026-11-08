@@ -280,10 +280,31 @@
     for (const url of list) {
       const base = await fetchResolver(url);
       if (base) {
-        localStorage.setItem('sh_api_base', base.replace(/\/+$/, ''));
-        state.sameOrigin = false;
-        return base;
+        base = base.replace(/\/+$/, '');
+        // 校验地址是否真的可用（地址簿可能是 CDN 缓存的旧值）
+        if (await backendAlive(base)) {
+          localStorage.setItem('sh_api_base', base);
+          state.sameOrigin = false;
+          return base;
+        }
       }
+    }
+  }
+
+  /** 快速验证后端地址是否可用 */
+  async function backendAlive(base) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 4000);
+      const res = await fetch(`${base}/api/health`, { cache: 'no-store', signal: controller.signal });
+      clearTimeout(timer);
+      if (!res.ok) return false;
+      const ct = res.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) return false;
+      const j = await res.json().catch(() => null);
+      return Boolean(j && j.ok);
+    } catch (e) {
+      return false;
     }
   }
 
