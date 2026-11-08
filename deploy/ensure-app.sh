@@ -93,6 +93,13 @@ echo -n "python导入: "; python3 -c "import yt_dlp; print('OK', yt_dlp.version.
 echo -n "pip路径: "; python3 -m pip --version 2>&1 | head -1
 echo "=== 容器内是否有 vscode-server（端口检测靠它）==="
 ps aux | grep -E "[v]scode-server|[c]ode-server|[n]ode .*server-main|[s]shd" | head -5 | cut -c1-120 || true
+echo "--- vscode-server 安装位置 ---"
+ls -d "$HOME"/.vscode-server/bin/*/ 2>/dev/null | head -3
+ls "$HOME"/.vscode-server/bin/*/bin/ 2>/dev/null | head -8
+which code code-server 2>/dev/null
+ls /usr/local/bin 2>/dev/null | head -12
+ls -d /usr/local/share/codespaces /opt/codespaces 2>/dev/null
+ls /usr/local/share 2>/dev/null | head -8
 echo "--- 全部监听端口 ---"; (ss -ltn 2>/dev/null || netstat -ltn 2>/dev/null) | head -12
 echo "=== 应用进程 ==="; pgrep -af "server/index.js" || echo "NO_APP_PROCESS"
 echo "=== 监听端口 ==="; (ss -ltnp 2>/dev/null || netstat -ltnp 2>/dev/null) | grep -E "8787|Local" | head -6 || echo "NO_SS"
