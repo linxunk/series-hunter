@@ -295,7 +295,7 @@
   async function backendAlive(base) {
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 4000);
+      const timer = setTimeout(() => controller.abort(), 3500);
       const res = await fetch(`${base}/api/health`, { cache: 'no-store', signal: controller.signal });
       clearTimeout(timer);
       if (!res.ok) return false;
@@ -311,7 +311,7 @@
   async function fetchResolver(url) {
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 3500);
+      const timer = setTimeout(() => controller.abort(), 2500);
       const res = await fetch(`${url}${url.includes('?') ? '&' : '?'}_=${Date.now()}`, {
         cache: 'no-store',
         signal: controller.signal,
