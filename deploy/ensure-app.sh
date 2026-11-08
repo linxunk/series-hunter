@@ -27,7 +27,12 @@ else
   echo "=== git sync 失败 ==="; tail -2 /tmp/git-fetch.log
 fi
 if [ "$before" != "$after" ]; then
-  echo ">>> 代码有更新（${before:0:7} → ${after:0:7}），稍后重启应用"
+  echo ">>> 代码有更新（${before:0:7} → ${after:0:7}）"
+fi
+# 进程启动时的版本（缺失说明进程由别的方式拉起，一律按需重启）
+app_head="$(cat /tmp/app-commit 2>/dev/null || echo none)"
+if [ "$after" != "$app_head" ]; then
+  echo ">>> 运行中的版本是 ${app_head:0:7}，磁盘上是 ${after:0:7} → 需要重启应用"
   need_restart=1
 fi
 
@@ -66,6 +71,7 @@ if ! pgrep -f "server/index.js" >/dev/null 2>&1; then
     setsid nohup bash .devcontainer/run.sh > /tmp/series-hunter.log 2>&1 < /dev/null &
   sleep 6
 fi
+git rev-parse HEAD > /tmp/app-commit 2>/dev/null || true
 
 echo "=== 应用进程 ==="; pgrep -af "server/index.js" || echo "NO_APP_PROCESS"
 echo "=== 监听端口 ==="; (ss -ltnp 2>/dev/null || netstat -ltnp 2>/dev/null) | grep -E "8787|Local" | head -6 || echo "NO_SS"

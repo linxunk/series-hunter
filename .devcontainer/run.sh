@@ -45,6 +45,9 @@ keep_codespace_awake() {
 }
 keep_codespace_awake &
 
+# 记录启动时的代码版本，供巡检判断是否需要重启
+git rev-parse HEAD > /tmp/app-commit 2>/dev/null || true
+
 echo "==> 剧集猎人启动：http://0.0.0.0:${PORT}"
 echo "    Codespace: ${CODESPACE_NAME:-<未设置>}"
 exec node server/index.js
