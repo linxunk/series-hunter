@@ -48,9 +48,11 @@ tunnel_up() {
 if ! tunnel_up; then
   # 优先 Cloudflare 快速隧道（边缘质量好、存活久），失败再用 serveo
   if [ ! -x /usr/local/bin/cloudflared ]; then
-    (curl -fsSL --max-time 120 https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared && chmod +x /usr/local/bin/cloudflared) >/dev/null 2>&1 || true
+    echo "=== 动作：安装 cloudflared（更稳的隧道）==="
+    (curl -fsSL --max-time 180 https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared && chmod +x /usr/local/bin/cloudflared) >/dev/null 2>&1 || true
+    echo "cloudflared: $(/usr/local/bin/cloudflared --version 2>/dev/null || echo '安装失败，将用 serveo')"
   fi
-  if [ -x /usr/local/bin/cloudflared ]; then
+  if [ -x /usr/local/bin/cloudflared ] && [ ! -f /tmp/tunnel-url ]; then
     echo "=== 动作：建立 Cloudflare 隧道 ==="
     pkill -f cloudflared 2>/dev/null || true
     sleep 1
