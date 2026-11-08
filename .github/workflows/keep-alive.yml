@@ -109,7 +109,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           set +e
-          url=$(gh codespace ssh -c "${CODESPACE}" -- 'cat /tmp/tunnel-url 2>/dev/null' | tr -d '\r\n ')
+          url=$(gh codespace ssh -c "${CODESPACE}" -- 'cat /tmp/tunnel-url 2>/dev/null' 2>/dev/null | grep -oE 'https://[a-z0-9.-]+' | head -1)
           [ -z "$url" ] && { echo "容器暂无隧道地址，跳过"; exit 0; }
           echo "容器隧道: $url"
           python3 - "$url" <<'PYEOF'
@@ -131,8 +131,9 @@ jobs:
             echo "配置已是最新"
           else
             git commit -m "chore: 同步容器隧道地址" >/dev/null 2>&1
-            git push origin HEAD:${{ github.event.repository.default_branch }} && echo "已推送到仓库"
+            git push origin HEAD:refs/heads/main && echo "已推送到仓库" || echo "推送失败"
           fi
+          exit 0
 
       - name: 汇总
         run: |
