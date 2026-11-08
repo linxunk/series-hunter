@@ -1081,6 +1081,13 @@
     if (!name) return toast('未配置 Codespaces');
     window.open(`https://github.com/codespaces/${name}`, '_blank', 'noopener');
   };
+  $('#btnUseCodespace').onclick = () => {
+    const { name, port } = codespaceInfo();
+    if (!name) return toast('未配置 Codespaces');
+    const url = `https://${name}-${port}.app.github.dev`;
+    $('#connectInput').value = url;
+    $('#wakeStatus').textContent = `已填入 ${url}（端口需在 GitHub 设为 Public 才能免登录访问）`;
+  };
   $('#btnCloseConnect').onclick = () => $('#connectModal').classList.add('hidden');
   $('#connectInput').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') doConnect();
