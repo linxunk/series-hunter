@@ -8,6 +8,6 @@ window.APP_CONFIG = {
   // 连接不上后端时，是否弹出「连接服务器」引导框
   showConnectPrompt: true,
   // GitHub Codespaces 云主机（访问不到后端时可一键唤醒）
-  codespace: 'psychic-garbanzo-7v4q5wr5x4j93r5wg',
+  codespace: 'upgraded-space-lamp-q7gr4694xg6pf4x5v',
   codespacePort: 8787,
 };

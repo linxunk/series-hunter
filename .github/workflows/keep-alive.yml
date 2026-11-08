@@ -22,7 +22,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  CODESPACE: psychic-garbanzo-7v4q5wr5x4j93r5wg
+  CODESPACE: upgraded-space-lamp-q7gr4694xg6pf4x5v
   PORT: 8787
   GH_PAT: ${{ secrets.GH_PAT }}
 
