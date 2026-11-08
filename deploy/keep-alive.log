@@ -558,3 +558,10 @@
 [2026-11-08 09:38:00] 后端已就绪
 09:38:33.538 INFO  [heartbeat] {"from":"github-actions","diag":"PROCS 6058 bash -lc cd /workspaces/series-hunter; echo PROCS; pgrep -af node.server.index.js || echo NO_NODE; echo LOCAL; curl -s -o /dev/null -m 8 -w root=%{http_code}_ http://127.0.0.1:8787/; curl -s -o /dev/null -m 8 -w appjs=%{http_code}_ http://127.0.0.1:8787/app.js; curl -s -o /dev/null -m 8 -w css=%{http_code}_ http://127.0.0.1:8787/styles.css; curl -s -m 8 http://127.0.0.1:8787/api/health | head -c 150; echo; echo LOG; tail -n 8 /tmp/series-hunter.log 2>/dev/null||echo NO_LOG LOCAL root=000_appjs=000_css=000_ LOG NO_LOG "}
 09:40:40.778 INFO  [heartbeat] {"from":"github-actions","diag":"===PWD=== /workspaces/series-hunter ===LS=== total 72 drwxrwxrwx+ 10 vscode root  4096 Nov  8 01:05 . drwxr-xrwx+  4 vscode root  4096 Nov  8 01:05 .. drwxrwxrwx+  2 vscode root  4096 Nov  8 01:05 .devcontainer -rw-rw-rw-   1 vscode root    39 Nov  8 01:05 .dockerignore drwxrwxrwx+  7 vscode root  4096 Nov  8 01:09 .git drwxrwxrwx+  3 vscode root  4096 Nov  8 01:05 .github -rw-rw-rw-   1 vscode root  1000 Nov  8 01:05 Dockerfile -rw-rw-rw-   1 vscode root 14435 Nov  8 01:05 README.md drwxrwxrwx+  2 vscode root  4096 Nov  8 01:05 config drwxrwxrwx+  2 vscode root  4096 Nov  8 01:05 deploy -rw-rw-rw-   1 vscode root   727 Nov  8 01:05 docker-compose.yml ===DEV=== total 20 drwxrwxrwx+  2 vscode root 4096 Nov  8 01:05 . drwxrwxrwx+ 10 vscode root 4096 Nov  8 01
+09:42:47.214 INFO  [heartbeat] {"from":"github-actions","diag":"bash: line 1: \": command not found bash: line 1: \": command not found bash: line 1: \": command not found bash: line 1: postCreate: command not found bash: line 1: LISTEN\": command not found bash: line 1: \": command not found NODE=/usr/local/share/nvm/current/bin/node v20.20.2 NODECOUNT=2 PSNODE= TMPLOG= DCPOST= LISTEN= "}
+[2026-11-08 09:44:20] 建立隧道 (localhost.run)…
+[2026-11-08 09:44:22] 免密方式超时，改用密钥重试
+[2026-11-08 09:44:22] 隧道建立超时
+[2026-11-08 09:44:22] 建立隧道 (serveo)…
+[2026-11-08 09:44:24] 免密方式超时，改用密钥重试
+[2026-11-08 09:44:24] 隧道建立超时
