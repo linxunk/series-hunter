@@ -40,16 +40,22 @@ fi
 
 # ---- 0.6) 容器自建公网隧道（绕开 GitHub 端口中继）----
 tunnel_up() {
-  [ -f /tmp/tunnel-url ] && curl -s -o /dev/null -m 10 "$(cat /tmp/tunnel-url)/api/health" 2>/dev/null
+  [ -f /tmp/tunnel-url ] || return 1
+  local u; u="$(cat /tmp/tunnel-url 2>/dev/null)"
+  [ -n "$u" ] || return 1
+  curl -fsS -o /dev/null -m 12 "${u}/api/health" 2>/dev/null
 }
 if ! tunnel_up; then
   if command -v ssh >/dev/null 2>&1; then
     echo "=== 动作：建立容器公网隧道 ==="
+    pkill -f "serveo.net" 2>/dev/null || true
+    sleep 2
+    : > /tmp/tunnel.log
     setsid nohup ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=20 -o ExitOnForwardFailure=no \
       -R 80:localhost:"${PORT}" serveo.net > /tmp/tunnel.log 2>&1 < /dev/null &
     for i in $(seq 1 25); do
       sleep 2
-      u="$(tr -d '\r' < /tmp/tunnel.log 2>/dev/null | grep -oE 'https://[a-z0-9.-]*serveousercontent\.com' | head -1)"
+      u="$(tr -d '\r' < /tmp/tunnel.log 2>/dev/null | grep -oE 'https://[a-z0-9.-]*serveousercontent\.com' | tail -1)"
       if [ -n "$u" ]; then
         echo "$u" > /tmp/tunnel-url
         echo "隧道就绪：$u"
