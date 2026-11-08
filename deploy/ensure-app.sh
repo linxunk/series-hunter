@@ -25,6 +25,19 @@ echo "=== node ==="; command -v node || echo "NO_NODE_BIN"; node -v 2>&1 || true
 
 need_restart=0
 
+# ---- 0.5) 保证 VS Code Server 在跑（GitHub 的端口检测依赖它）----
+if ! pgrep -f "vscode-server|server-main" >/dev/null 2>&1; then
+  if command -v code >/dev/null 2>&1; then
+    echo "=== 动作：启动 VS Code Server（端口转发依赖它）==="
+    setsid nohup code --server --host 0.0.0.0 --port 3000 --without-connection-token \
+      > /tmp/vscode-server.log 2>&1 < /dev/null &
+    sleep 10
+    pgrep -af "server-main|vscode-server" | head -3 | cut -c1-100 || echo "启动未成功"
+  else
+    echo "=== 容器内没有 code CLI，无法自启 VS Code Server ==="
+  fi
+fi
+
 # ---- 1) 拉取最新代码 ----
 before="$(git rev-parse HEAD 2>/dev/null)"
 # 强制同步到远端最新（pull 在 Codespaces 里不一定生效）
