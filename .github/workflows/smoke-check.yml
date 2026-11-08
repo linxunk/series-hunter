@@ -1,0 +1,50 @@
+name: 剧集猎人 · 在线自检
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+env:
+  CODESPACE: upgraded-space-lamp-q7gr4694xg6pf4x5v
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: 从 runner 视角自检
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          set +e
+          {
+            echo "=== 地址簿 ==="
+            curl -s -m 20 "https://gh-proxy.com/https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/main/web/tunnel.json"
+            echo
+            url=$(curl -s -m 20 "https://gh-proxy.com/https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/main/web/tunnel.json" | grep -oE 'https://[a-z0-9.-]+' | head -1)
+            echo "=== 后端健康 ==="
+            curl -s -m 25 -o /dev/null -w "health=%{http_code}\n" "${url}/api/health"
+            curl -s -m 25 "${url}/api/health"; echo
+            echo "=== 搜索（异步任务）==="
+            job=$(curl -s -m 25 -X POST "${url}/api/job" -H "Content-Type: application/json" -d '{"type":"search","q":"庆余年","platforms":["iqiyi","bilibili","mgtv"]}' | grep -oE '"jobId":"[^"]+"' | cut -d'"' -f4)
+            echo "jobId=${job}"
+            for i in $(seq 1 30); do
+              sleep 5
+              r=$(curl -s -m 25 "${url}/api/job?jobId=${job}")
+              st=$(echo "$r" | grep -oE '"state":"[^"]+"' | head -1)
+              echo "  [$i] ${st}"
+              case "$st" in *done*) echo "$r" | head -c 600; echo; break;; esac
+            done
+          } > /tmp/smoke.txt 2>&1
+          cat /tmp/smoke.txt
+      - name: 上传自检报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-report
+          path: /tmp/smoke.txt
+          if-no-files-found: ignore
