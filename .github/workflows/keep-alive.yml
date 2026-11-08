@@ -70,7 +70,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
         run: |
           set +e
-          diag=$(gh codespace ssh -c "${CODESPACE}" -- 'bash /workspaces/series-hunter/deploy/ensure-app.sh' 2>&1 | tr '\n' ' ')
+          diag=$(gh codespace ssh -c "${CODESPACE}" -- 'bash -lc "cd /workspaces/series-hunter && git pull --ff-only 2>&1 | tail -2; bash deploy/ensure-app.sh"' 2>&1 | tr '\n' ' ')
             'bash -lc "cd /workspaces/series-hunter; echo ===PROCS===; pgrep -af \"node server/index.js\" || echo NO_NODE; echo ===PORT===; (ss -ltnp 2>/dev/null || netstat -ltnp 2>/dev/null) | grep 8787 || echo NO_PORT; echo ===LOG===; tail -n 12 /tmp/series-hunter.log 2>/dev/null || echo NO_LOG; echo ===WS===; pwd; ls -d vendor 2>/dev/null || echo NO_VENDOR"' 2>&1)
           echo "${diag}"
           if ! echo "${diag}" | grep -q "===PROCS==="; then
@@ -89,7 +89,7 @@ jobs:
           set +e
           peer_api=$(grep -o "apiBase: '[^']*'" "$GITHUB_WORKSPACE/web/config.js" 2>/dev/null | head -1 | sed "s/apiBase: '//; s/'$//")
           [ -z "${peer_api}" ] && { echo "未找到主控地址，跳过回传"; exit 0; }
-          diag=$(gh codespace ssh -c "${CODESPACE}" -- 'bash /workspaces/series-hunter/deploy/ensure-app.sh' 2>&1 | tr '\n' ' ')
+          diag=$(gh codespace ssh -c "${CODESPACE}" -- 'bash -lc "cd /workspaces/series-hunter && git pull --ff-only 2>&1 | tail -2; bash deploy/ensure-app.sh"' 2>&1 | tr '\n' ' ')
           echo "${diag}" > /tmp/codespace-diag.txt
           curl -s -m 20 -G --data-urlencode "from=github-actions" --data-urlencode "diag=${diag:0:1200}" \
             "${peer_api}/api/heartbeat" || true

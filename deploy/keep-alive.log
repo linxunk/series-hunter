@@ -571,3 +571,4 @@
 [2026-11-08 09:45:07] 建立隧道 (serveo)…
 [2026-11-08 09:45:09] 已同步前端后端地址 → https://ca09d844a835062d-47-100-94-83.serveousercontent.com
 [2026-11-08 09:45:09] 隧道就绪：https://ca09d844a835062d-47-100-94-83.serveousercontent.com
+09:47:18.832 INFO  [heartbeat] {"from":"github-actions","diag":"bash: /workspaces/series-hunter/deploy/ensure-app.sh: No such file or directory shell closed: exit status 127 "}
