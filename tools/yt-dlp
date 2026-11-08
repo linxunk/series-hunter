@@ -1,9 +1,9 @@
 #!/bin/sh
 # 剧集猎人 · yt-dlp 启动器
-# 优先使用项目内置的 vendor/ 版本（自动带上 PYTHONPATH），
-# 没有内置版本时直接用系统里的 yt-dlp。
-# 注意：要用 POSIX 写法，脚本可能被 dash 执行。
+# 依次尝试：项目内置 vendor/ → 常见安装路径 → PATH → python 模块
+# 注意：必须用 POSIX 写法（脚本可能被 dash 执行）。
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
+
 if [ -d "$ROOT/vendor/yt_dlp" ]; then
   if [ -n "$PYTHONPATH" ]; then
     PYTHONPATH="$ROOT/vendor:$PYTHONPATH"
@@ -13,4 +13,20 @@ if [ -d "$ROOT/vendor/yt_dlp" ]; then
   export PYTHONPATH
   exec python3 -m yt_dlp "$@"
 fi
-exec yt-dlp "$@"
+
+for c in /usr/local/bin/yt-dlp /usr/bin/yt-dlp "$HOME/.local/bin/yt-dlp" /snap/bin/yt-dlp; do
+  if [ -x "$c" ]; then
+    exec "$c" "$@"
+  fi
+done
+
+if command -v yt-dlp >/dev/null 2>&1; then
+  exec yt-dlp "$@"
+fi
+
+if python3 -c "import yt_dlp" >/dev/null 2>&1; then
+  exec python3 -m yt_dlp "$@"
+fi
+
+echo "yt-dlp 未安装，请执行：bash tools/install.sh" >&2
+exit 1

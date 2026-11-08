@@ -574,3 +574,16 @@
 09:47:18.832 INFO  [heartbeat] {"from":"github-actions","diag":"bash: /workspaces/series-hunter/deploy/ensure-app.sh: No such file or directory shell closed: exit status 127 "}
 09:49:41.206 INFO  [heartbeat] {"from":"github-actions","diag":"Already up to date. === 时间 === 2026-11-08T01:49:40Z === 工作目录 === /workspaces/series-hunter === node === /usr/local/share/nvm/current/bin/node v20.20.2 === 应用进程 === 9662 node server/index.js === 监听端口 === State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess                          LISTEN 0      511          0.0.0.0:8787       0.0.0.0:*    users:((\"node\",pid=9662,fd=18)) === /tmp 日志 === -rw-r--rw- 1 vscode vscode 332 Nov  8 01:49 /tmp/series-hunter.log -rw-r--rw- 1 root   root    57 Nov  8 01:17 /tmp/sshd.log === devcontainer 生命周期 ===   \"postCreateCommand\": \"bash .devcontainer/setup.sh || true\",   \"postStartCommand\": \"nohup bash .devcontainer/run.sh > /tmp/series-hunter.log 2>&1 &\", === 本机自检 === root=200 appjs=200 health={\"ok\":true,\"
 09:52:02.583 INFO  [heartbeat] {"from":"github-actions","diag":"Already up to date. === 时间 === 2026-11-08T01:52:01Z === 工作目录 === /workspaces/series-hunter === node === /usr/local/share/nvm/current/bin/node v20.20.2 === 应用进程 === 9662 node server/index.js === 监听端口 === State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess                          LISTEN 0      511          0.0.0.0:8787       0.0.0.0:*    users:((\"node\",pid=9662,fd=18)) === /tmp 日志 === -rw-r--rw- 1 vscode vscode 332 Nov  8 01:49 /tmp/series-hunter.log -rw-r--rw- 1 root   root    57 Nov  8 01:17 /tmp/sshd.log === devcontainer 生命周期 ===   \"postCreateCommand\": \"bash .devcontainer/setup.sh || true\",   \"postStartCommand\": \"nohup bash .devcontainer/run.sh > /tmp/series-hunter.log 2>&1 &\", === 本机自检 === root=200 appjs=200 health={\"ok\":true,\"
+09:54:56.755 INFO  [heartbeat] {"from":"github-actions","diag":"Already up to date. === 时间 === 2026-11-08T01:54:54Z === node === /usr/local/share/nvm/current/bin/node v20.20.2 === git pull === Already up to date. === 应用进程 === 11625 node server/index.js === 监听端口 === State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess                           LISTEN 0      511          0.0.0.0:8787       0.0.0.0:*    users:((\"node\",pid=11625,fd=18)) === 本机自检 === root=200 appjs=200 health={\"ok\":true,\"ytdlp\":\"未安装 yt-dlp\",\"ytdlpReady\":false,\"node\":\"v20.20.2\",\"downloadDir\":\"/workspaces/series-hunter/downloads\"} === 日志尾部 === ==> 剧集猎人启动：http://0.0.0.0:8787     Codespace: upgraded-space-lamp-q7gr4694xg6pf4x5v 09:54:39.783 INFO  [boot] 剧集猎人已启动 → http://localhost:8787 09:54:39.784 INFO  [boot] 下载目录: /workspaces/ser
+[2026-11-08 09:55:38] 建立隧道 (localhost.run)…
+[2026-11-08 09:55:40] 免密方式超时，改用密钥重试
+[2026-11-08 09:55:40] 隧道建立超时
+[2026-11-08 09:55:40] 建立隧道 (serveo)…
+[2026-11-08 09:55:42] 免密方式超时，改用密钥重试
+[2026-11-08 09:55:42] 隧道建立超时
+[2026-11-08 09:56:23] 建立隧道 (localhost.run)…
+[2026-11-08 09:56:25] 免密方式超时，改用密钥重试
+[2026-11-08 09:56:25] 隧道建立超时
+[2026-11-08 09:56:25] 建立隧道 (serveo)…
+[2026-11-08 09:56:27] 免密方式超时，改用密钥重试
+[2026-11-08 09:56:27] 隧道建立超时
