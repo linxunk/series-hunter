@@ -111,6 +111,11 @@ jobs:
         run: |
           set +e
           read_addr() {
+            local u
+            # 首选：直接问容器当前的隧道地址
+            u=$(gh codespace ssh -c "${CODESPACE}" -- 'cat /tmp/tunnel-url 2>/dev/null' 2>/dev/null | grep -oE 'https://[a-z0-9.-]*\.(trycloudflare\.com|serveousercontent\.com|lhr\.life)' | head -1)
+            if [ -n "$u" ]; then echo "$u"; return 0; fi
+            # 兜底：从本次运行的诊断产物里找
             local id
             id=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts" --jq '.artifacts[]?|select(.name=="codespace-diag")|.id' 2>/dev/null | head -1)
             [ -z "$id" ] && return 0
@@ -125,7 +130,7 @@ jobs:
           # 从外部网络校验；不通就让容器重建隧道
           if ! alive "$url"; then
             echo ">>> 外部访问不通，令容器重建隧道"
-            gh codespace ssh -c "${CODESPACE}" -- 'rm -f /tmp/tunnel-url; bash /workspaces/series-hunter/deploy/ensure-app.sh' >/dev/null 2>&1
+            gh codespace ssh -c "${CODESPACE}" -- 'rm -f /tmp/tunnel-url; pkill -f cloudflared 2>/dev/null; pkill -f serveo.net 2>/dev/null; sleep 1; bash /workspaces/series-hunter/deploy/ensure-app.sh' >/dev/null 2>&1
             for i in $(seq 1 15); do
               sleep 10
               url="$(read_addr)"
