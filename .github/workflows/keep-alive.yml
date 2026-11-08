@@ -117,17 +117,17 @@ jobs:
             exit 0
           fi
           python3 - "$url" <<'PYEOF'
-import re, sys, json
-url = sys.argv[1]
-p = 'web/config.js'
-s = open(p, encoding='utf-8').read()
-s = re.sub(r"apiBase: '[^']*'", f"apiBase: '{url}'", s)
-open(p, 'w', encoding='utf-8').write(s)
-print('config.js 已更新 →', url)
-with open('web/tunnel.json', 'w', encoding='utf-8') as f:
-    json.dump({'apiBase': url, 'updatedAt': int(__import__('time').time())}, f, ensure_ascii=False, indent=2)
-print('web/tunnel.json 已更新')
-PYEOF
+          import re, sys, json
+          url = sys.argv[1]
+          p = 'web/config.js'
+          s = open(p, encoding='utf-8').read()
+          s = re.sub(r"apiBase: '[^']*'", f"apiBase: '{url}'", s)
+          open(p, 'w', encoding='utf-8').write(s)
+          print('config.js 已更新 →', url)
+          with open('web/tunnel.json', 'w', encoding='utf-8') as f:
+              json.dump({'apiBase': url, 'updatedAt': int(__import__('time').time())}, f, ensure_ascii=False, indent=2)
+          print('web/tunnel.json 已更新')
+          PYEOF
           git config user.name "series-hunter-bot"
           git config user.email "bot@users.noreply.github.com"
           git add web/config.js web/tunnel.json
