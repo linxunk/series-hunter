@@ -17,8 +17,15 @@ need_restart=0
 
 # ---- 1) 拉取最新代码 ----
 before="$(git rev-parse HEAD 2>/dev/null)"
-git pull --ff-only >/tmp/git-pull.log 2>&1 && echo "=== git pull ===" && tail -1 /tmp/git-pull.log || echo "=== git pull 失败（不阻塞） ==="
-after="$(git rev-parse HEAD 2>/dev/null)"
+# 强制同步到远端最新（pull 在 Codespaces 里不一定生效）
+git fetch origin main >/tmp/git-fetch.log 2>&1
+if git reset --hard origin/main >/dev/null 2>&1; then
+  after="$(git rev-parse HEAD 2>/dev/null)"
+  echo "=== git sync === ${after:0:7} $(git log -1 --pretty=%s 2>/dev/null)"
+else
+  after="$before"
+  echo "=== git sync 失败 ==="; tail -2 /tmp/git-fetch.log
+fi
 if [ "$before" != "$after" ]; then
   echo ">>> 代码有更新（${before:0:7} → ${after:0:7}），稍后重启应用"
   need_restart=1
