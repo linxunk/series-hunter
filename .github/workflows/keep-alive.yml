@@ -70,10 +70,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
         run: |
           set +e
-          diag=$(gh codespace ssh -c "${CODESPACE}" -- 'bash -lc "cd /workspaces/series-hunter && git pull --ff-only 2>&1 | tail -2; bash deploy/ensure-app.sh"' 2>&1 | tr '\n' ' ')
-            'bash -lc "cd /workspaces/series-hunter; echo ===PROCS===; pgrep -af \"node server/index.js\" || echo NO_NODE; echo ===PORT===; (ss -ltnp 2>/dev/null || netstat -ltnp 2>/dev/null) | grep 8787 || echo NO_PORT; echo ===LOG===; tail -n 12 /tmp/series-hunter.log 2>/dev/null || echo NO_LOG; echo ===WS===; pwd; ls -d vendor 2>/dev/null || echo NO_VENDOR"' 2>&1)
+          diag=$(gh codespace ssh -c "${CODESPACE}" -- \
+            'bash -lc "cd /workspaces/series-hunter && git fetch origin main >/dev/null 2>&1; git reset --hard origin/main >/dev/null 2>&1; bash deploy/ensure-app.sh"' 2>&1 | tr '\n' ' ')
           echo "${diag}"
-          if ! echo "${diag}" | grep -q "===PROCS==="; then
+          if ! echo "${diag}" | grep -q "应用进程"; then
             echo ">>> SSH 不可用，先尝试用 API 重新拉起实例"
             gh api -X POST "user/codespaces/${CODESPACE}/stop" >/dev/null 2>&1
             sleep 20
