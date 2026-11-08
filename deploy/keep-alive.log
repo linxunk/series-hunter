@@ -490,3 +490,33 @@
 [2026-11-08 08:56:43] 已同步前端后端地址 → https://630a23f13e9ecb5c-139-224-49-92.serveousercontent.com
 [2026-11-08 08:56:43] 隧道就绪：https://630a23f13e9ecb5c-139-224-49-92.serveousercontent.com
 09:04:45.528 INFO  [heartbeat] {"from":"github-actions","diag":"error getting ssh server details: failed to start SSH server:  Please check if an SSH server is installed in the container. If the docker image being used for the codespace does not have an SSH server, install it in your Dockerfile or, for codespaces that use Debian-based images, you can add the following to your devcontainer.json:  \"features\": {     \"ghcr.io/devcontainers/features/sshd:1\": {         \"version\": \"latest\"     } }  "}
+[2026-11-08 09:07:13] 建立隧道 (localhost.run)…
+[2026-11-08 09:07:15] 免密方式超时，改用密钥重试
+[2026-11-08 09:07:15] 隧道建立超时
+[2026-11-08 09:07:15] 建立隧道 (serveo)…
+[2026-11-08 09:07:17] 免密方式超时，改用密钥重试
+[2026-11-08 09:07:17] 隧道建立超时
+[2026-11-08 09:07:58] 建立隧道 (localhost.run)…
+[2026-11-08 09:08:00] 免密方式超时，改用密钥重试
+[2026-11-08 09:08:00] 隧道建立超时
+[2026-11-08 09:08:00] 建立隧道 (serveo)…
+[2026-11-08 09:08:02] 免密方式超时，改用密钥重试
+[2026-11-08 09:08:02] 隧道建立超时
+[2026-11-08 09:08:43] 建立隧道 (localhost.run)…
+[2026-11-08 09:08:45] 免密方式超时，改用密钥重试
+[2026-11-08 09:08:45] 隧道建立超时
+[2026-11-08 09:08:45] 建立隧道 (serveo)…
+[2026-11-08 09:08:47] 免密方式超时，改用密钥重试
+[2026-11-08 09:08:47] 隧道建立超时
+[2026-11-08 09:09:28] 建立隧道 (localhost.run)…
+[2026-11-08 09:09:30] 免密方式超时，改用密钥重试
+[2026-11-08 09:09:30] 隧道建立超时
+[2026-11-08 09:09:30] 建立隧道 (serveo)…
+[2026-11-08 09:09:32] 免密方式超时，改用密钥重试
+[2026-11-08 09:09:32] 隧道建立超时
+[2026-11-08 09:10:14] 建立隧道 (localhost.run)…
+[2026-11-08 09:10:16] 免密方式超时，改用密钥重试
+[2026-11-08 09:10:16] 隧道建立超时
+[2026-11-08 09:10:16] 建立隧道 (serveo)…
+[2026-11-08 09:10:18] 免密方式超时，改用密钥重试
+[2026-11-08 09:10:18] 隧道建立超时
