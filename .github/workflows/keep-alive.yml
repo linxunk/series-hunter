@@ -110,29 +110,41 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           set +e
-          url=""
-          # 优先从本次运行的诊断产物里取容器上报的隧道地址
-          art_id=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts" --jq '.artifacts[]?|select(.name=="codespace-diag")|.id' 2>/dev/null | head -1)
-          if [ -n "$art_id" ]; then
-            gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${art_id}/zip" > /tmp/diag.zip 2>/dev/null &&               url=$(unzip -p /tmp/diag.zip 2>/dev/null | grep -oE 'https://[a-z0-9.-]*serveousercontent\.com' | head -1)
+          read_addr() {
+            gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts" --jq '.artifacts[]?|select(.name=="codespace-diag")|.id' 2>/dev/null | head -1 |
+            { read -r id; [ -n "$id" ] && gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip" 2>/dev/null; } |
+            unzip -p /dev/stdin 2>/dev/null | grep -oE 'https://[a-z0-9.-]*serveousercontent\.com' | head -1
+          }
+          alive() {
+            [ -n "$1" ] && curl -fsS -o /dev/null -m 20 "${1}/api/health" 2>/dev/null
+          }
+          url="$(read_addr)"
+          echo "容器上报的隧道: ${url:-无}"
+          # 从外部网络校验；不通就让容器重建隧道
+          if ! alive "$url"; then
+            echo ">>> 外部访问不通，令容器重建隧道"
+            gh codespace ssh -c "${CODESPACE}" -- 'rm -f /tmp/tunnel-url; bash /workspaces/series-hunter/deploy/ensure-app.sh' >/dev/null 2>&1
+            for i in $(seq 1 15); do
+              sleep 10
+              url="$(read_addr)"
+              alive "$url" && break
+            done
           fi
-          # 兜底：直接 SSH 读容器里的文件
-          if [ -z "$url" ]; then
-            url=$(gh codespace ssh -c "${CODESPACE}" -- 'cat /tmp/tunnel-url 2>/dev/null' 2>/dev/null | grep -oE 'https://[a-z0-9.-]+' | head -1)
+          if ! alive "$url"; then
+            echo "隧道仍不可用，本次跳过同步"
+            exit 0
           fi
-          [ -z "$url" ] && { echo "容器暂无隧道地址，跳过"; exit 0; }
-          echo "容器隧道: $url"
+          echo "已校验可用: $url"
           python3 - "$url" <<'PYEOF'
-          import re, sys, json
+          import re, sys, json, time
           url = sys.argv[1]
           p = 'web/config.js'
           s = open(p, encoding='utf-8').read()
           s = re.sub(r"apiBase: '[^']*'", f"apiBase: '{url}'", s)
           open(p, 'w', encoding='utf-8').write(s)
-          print('config.js 已更新 →', url)
           with open('web/tunnel.json', 'w', encoding='utf-8') as f:
-              json.dump({'apiBase': url, 'updatedAt': int(__import__('time').time())}, f, ensure_ascii=False, indent=2)
-          print('web/tunnel.json 已更新')
+              json.dump({'apiBase': url, 'updatedAt': int(time.time())}, f, ensure_ascii=False, indent=2)
+          print('config.js / tunnel.json 已更新 →', url)
           PYEOF
           git config user.name "series-hunter-bot"
           git config user.email "bot@users.noreply.github.com"
