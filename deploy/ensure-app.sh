@@ -11,6 +11,16 @@ PORT="${PORT:-8787}"
 cd "$APP_DIR" || exit 1
 
 echo "=== 时间 ==="; date -u '+%Y-%m-%dT%H:%M:%SZ'
+
+# ---- 0) 开机自启（cron @reboot），保证容器一起来应用就监听端口 ----
+if ! command -v cron >/dev/null 2>&1; then
+  (sudo apt-get update -qq >/dev/null 2>&1 && sudo apt-get install -y -qq cron >/dev/null 2>&1) || true
+fi
+if command -v crontab >/dev/null 2>&1; then
+  (crontab -l 2>/dev/null | grep -v 'series-hunter-autostart'; echo "@reboot /bin/bash /workspaces/series-hunter/deploy/autostart.sh # series-hunter-autostart") | crontab - 2>/dev/null || true
+  pgrep -x cron >/dev/null 2>&1 || (sudo cron >/dev/null 2>&1 || sudo /usr/sbin/cron >/dev/null 2>&1 || true)
+  echo "=== 开机自启 ==="; crontab -l 2>/dev/null | grep series-hunter-autostart || echo "未写入 crontab"
+fi
 echo "=== node ==="; command -v node || echo "NO_NODE_BIN"; node -v 2>&1 || true
 
 need_restart=0
