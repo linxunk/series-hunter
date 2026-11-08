@@ -114,12 +114,20 @@ async function pushCode(repo) {
     type: 'blob',
     content: fs.readFileSync(f.abs, 'utf8'),
   }));
-  // 保证可执行脚本带上执行位
+  // 保证可执行脚本带上执行位：.sh/.py 或以 #! 开头的文件
   for (const f of files) {
-    if (/\.(sh|py)$/.test(f.path)) {
-      const item = tree.find((t) => t.path === f.path);
-      if (item) item.mode = '100755';
+    const item = tree.find((t) => t.path === f.path);
+    if (!item) continue;
+    let isScript = /\.(sh|py)$/.test(f.path);
+    if (!isScript) {
+      try {
+        const head = fs.readFileSync(f.abs, 'utf8').slice(0, 2);
+        if (head === '#!') isScript = true;
+      } catch {
+        /* ignore */
+      }
     }
+    if (isScript) item.mode = '100755';
   }
 
   const ref = await gh(`/repos/${repo.full_name}/git/ref/heads/${repo.default_branch || 'main'}`);
