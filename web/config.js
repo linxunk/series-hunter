@@ -14,7 +14,7 @@ window.APP_CONFIG = {
   resolverUrls: [
     'https://raw.githubusercontent.com/linxunk/series-hunter/main/web/tunnel.json',
     'https://cdn.jsdelivr.net/gh/linxunk/series-hunter@main/web/tunnel.json',
-  ],,
+  ],
   // GitHub Codespaces 云主机（访问不到后端时可一键唤醒）
   codespace: 'upgraded-space-lamp-q7gr4694xg6pf4x5v',
   codespacePort: 8787,
