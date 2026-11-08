@@ -41,6 +41,7 @@ jobs:
           fi
 
       - name: 检查并拉起 Codespaces
+        if: env.GH_PAT != ''
         env:
           GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
         run: |
@@ -58,6 +59,7 @@ jobs:
           fi
 
       - name: 确保应用进程存活
+        if: env.GH_PAT != ''
         env:
           GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
         run: |
@@ -69,6 +71,9 @@ jobs:
 
       - name: 汇总
         run: |
+          if [ -z "${GH_PAT}" ]; then
+            echo "::warning::未配置 Secret GH_PAT —— 只能刷新空闲计时器，无法自动拉起/重启"
+          fi
           echo "✅ 巡检完成 —— ${CODESPACE} 端口 ${PORT}"
           echo "   应用地址: https://${CODESPACE}-${PORT}.app.github.dev"
           if [ -z "${GH_PAT}" ]; then
