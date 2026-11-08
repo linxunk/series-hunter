@@ -109,7 +109,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           set +e
-          url=$(gh codespace ssh -c "${CODESPACE}" -- 'cat /tmp/tunnel-url 2>/dev/null' 2>/dev/null | grep -oE 'https://[a-z0-9.-]+' | head -1)
+          url=""
+          # 优先从本次运行的诊断产物里取容器上报的隧道地址
+          art_id=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts" --jq '.artifacts[]?|select(.name=="codespace-diag")|.id' 2>/dev/null | head -1)
+          if [ -n "$art_id" ]; then
+            gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${art_id}/zip" > /tmp/diag.zip 2>/dev/null &&               url=$(unzip -p /tmp/diag.zip 2>/dev/null | grep -oE 'https://[a-z0-9.-]*serveousercontent\.com' | head -1)
+          fi
+          # 兜底：直接 SSH 读容器里的文件
+          if [ -z "$url" ]; then
+            url=$(gh codespace ssh -c "${CODESPACE}" -- 'cat /tmp/tunnel-url 2>/dev/null' 2>/dev/null | grep -oE 'https://[a-z0-9.-]+' | head -1)
+          fi
           [ -z "$url" ] && { echo "容器暂无隧道地址，跳过"; exit 0; }
           echo "容器隧道: $url"
           python3 - "$url" <<'PYEOF'
