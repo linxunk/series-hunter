@@ -38,6 +38,30 @@ if ! pgrep -f "vscode-server|server-main" >/dev/null 2>&1; then
   fi
 fi
 
+# ---- 0.6) 容器自建公网隧道（绕开 GitHub 端口中继）----
+tunnel_up() {
+  [ -f /tmp/tunnel-url ] && curl -s -o /dev/null -m 10 "$(cat /tmp/tunnel-url)/api/health" 2>/dev/null
+}
+if ! tunnel_up; then
+  if command -v ssh >/dev/null 2>&1; then
+    echo "=== 动作：建立容器公网隧道 ==="
+    setsid nohup ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=20 -o ExitOnForwardFailure=no \
+      -R 80:localhost:"${PORT}" serveo.net > /tmp/tunnel.log 2>&1 < /dev/null &
+    for i in $(seq 1 25); do
+      sleep 2
+      u="$(tr -d '\r' < /tmp/tunnel.log 2>/dev/null | grep -oE 'https://[a-z0-9.-]*serveousercontent\.com' | head -1)"
+      if [ -n "$u" ]; then
+        echo "$u" > /tmp/tunnel-url
+        echo "隧道就绪：$u"
+        break
+      fi
+    done
+    [ -f /tmp/tunnel-url ] || echo "隧道建立失败（稍后重试）"
+  fi
+else
+  echo "=== 隧道已在运行：$(cat /tmp/tunnel-url 2>/dev/null) ==="
+fi
+
 # ---- 1) 拉取最新代码 ----
 before="$(git rev-parse HEAD 2>/dev/null)"
 # 强制同步到远端最新（pull 在 Codespaces 里不一定生效）
@@ -114,6 +138,7 @@ ls /usr/local/bin 2>/dev/null | head -12
 ls -d /usr/local/share/codespaces /opt/codespaces 2>/dev/null
 ls /usr/local/share 2>/dev/null | head -8
 echo "--- 全部监听端口 ---"; (ss -ltn 2>/dev/null || netstat -ltn 2>/dev/null) | head -12
+echo "=== 隧道地址 ==="; cat /tmp/tunnel-url 2>/dev/null || echo "NO_TUNNEL"
 echo "=== 应用进程 ==="; pgrep -af "server/index.js" || echo "NO_APP_PROCESS"
 echo "=== 监听端口 ==="; (ss -ltnp 2>/dev/null || netstat -ltnp 2>/dev/null) | grep -E "8787|Local" | head -6 || echo "NO_SS"
 echo "=== 本机自检 ==="
