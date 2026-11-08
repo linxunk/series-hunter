@@ -164,6 +164,7 @@
       state.platforms = plat.platforms;
       state.activePlatforms = plat.platforms.map((p) => p.id);
       renderChips();
+      showBackendTag();
       const badge = $('#engineBadge');
       if (health.ytdlpReady) {
         badge.textContent = `✓ ${health.ytdlp}`;
@@ -300,6 +301,24 @@
     } catch (e) {
       /* 地址簿不可用时回落到 config.js */
     }
+  }
+
+  /** 显示当前后端地址，并提供手动重连 */
+  function showBackendTag() {
+    const tag = $('#apiBaseTag');
+    const btn = $('#btnReconnect');
+    const base = apiBase();
+    if (tag) {
+      if (base) {
+        tag.textContent = `后端 ${base.replace(/^https?:\/\//, '').slice(0, 24)}`;
+        tag.title = base;
+      } else {
+        tag.textContent = '后端 同源';
+        tag.title = '与页面同源';
+      }
+      tag.classList.remove('hidden');
+    }
+    if (btn) btn.classList.toggle('hidden', !base);
   }
 
   async function failover() {
@@ -1113,6 +1132,10 @@
     renderParsers(parsers);
   };
   $('#btnBackend').onclick = askConnect;
+  $('#btnReconnect').onclick = () => {
+    localStorage.removeItem('sh_api_base');
+    window.location.reload();
+  };
   $('#ckAutoFill').checked = state.autoFill;
   $('#ckAutoFill').onchange = (e) => {
     state.autoFill = e.target.checked;
