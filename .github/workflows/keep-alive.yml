@@ -1,9 +1,13 @@
 name: 剧集猎人 · 保活守护
 
 # 每 7 分钟巡检一次：
-#   1) Codespaces 被空闲回收 → 自动拉起
-#   2) 容器里的应用进程挂了 → 自动重启
-#   3) 访问一次公网端口 → 刷新 Codespaces 的空闲计时器
+#   1) 访问一次云主机端口 → 刷新 Codespaces 的空闲计时器（无需令牌）
+#   2) 云主机已被回收 → 用仓库 Secret 里的 PAT 重新拉起
+#   3) 容器里的应用进程挂了 → SSH 进去重启（需要 PAT）
+#
+# ⚠️ 若要自动拉起/重启，请在仓库 Settings → Secrets and variables → Actions
+#    新增仓库 Secret：名称 GH_PAT，值 = 你的 Personal Access Token
+#    （需包含 codespace 权限；不含时第 1 步仍会尽力保活）
 on:
   schedule:
     - cron: '*/7 * * * *'
@@ -20,7 +24,6 @@ concurrency:
 env:
   CODESPACE: psychic-garbanzo-7v4q5wr5x4j93r5wg
   PORT: 8787
-  # 优先用仓库 Secret 里的 PAT（需要 codespace 权限），没有则退回内置令牌
   GH_PAT: ${{ secrets.GH_PAT }}
 
 jobs:
@@ -28,16 +31,26 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
-      - name: 检查并拉起 Codespaces
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+      - name: 刷新空闲计时器（无需令牌）
         run: |
-          state=$(gh api "user/codespaces/${CODESPACE}" --jq .state 2>/dev/null || echo "unknown")
+          url="https://${CODESPACE}-${PORT}.app.github.dev/"
+          code=$(curl -s -o /dev/null -m 25 -w "%{http_code}" "$url" || echo 000)
+          echo "端口 ${url} → ${code}"
+          if [ "${code}" = "404" ] || [ "${code}" = "000" ]; then
+            echo "::warning::云主机可能已停止，需要用 PAT 拉起"
+          fi
+
+      - name: 检查并拉起 Codespaces
+        if: env.GH_PAT != ''
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          state=$(gh api "user/codespaces/${CODESPACE}" --jq .state 2>/dev/null || echo unknown)
           echo "当前状态: ${state}"
           if [ "${state}" != "available" ]; then
             echo ">>> 正在启动 Codespaces…"
             gh api -X POST "user/codespaces/${CODESPACE}/start" || true
-            for i in $(seq 1 20); do
+            for i in $(seq 1 24); do
               sleep 15
               state=$(gh api "user/codespaces/${CODESPACE}" --jq .state 2>/dev/null || echo unknown)
               echo "    [$i] ${state}"
@@ -46,8 +59,9 @@ jobs:
           fi
 
       - name: 确保应用进程存活
+        if: env.GH_PAT != ''
         env:
-          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           set +e
           gh codespace ssh -c "${CODESPACE}" -- \
@@ -55,12 +69,10 @@ jobs:
             || echo "SSH 未就绪，跳过本次进程检查"
           exit 0
 
-      - name: 刷新空闲计时器
-        run: |
-          code=$(curl -s -o /dev/null -m 20 -w "%{http_code}" "https://${CODESPACE}-${PORT}.app.github.dev/" || echo 000)
-          echo "公网端口返回: ${code}"
-
       - name: 汇总
         run: |
           echo "✅ 巡检完成 —— ${CODESPACE} 端口 ${PORT}"
           echo "   应用地址: https://${CODESPACE}-${PORT}.app.github.dev"
+          if [ -z "${GH_PAT}" ]; then
+            echo "   ℹ️ 未配置 Secret GH_PAT：当前只能保活，无法自动拉起已停止的实例"
+          fi
