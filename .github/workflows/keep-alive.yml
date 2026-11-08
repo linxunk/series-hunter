@@ -89,7 +89,7 @@ jobs:
           set +e
           peer_api=$(grep -o "apiBase: '[^']*'" "$GITHUB_WORKSPACE/web/config.js" 2>/dev/null | head -1 | sed "s/apiBase: '//; s/'$//")
           [ -z "${peer_api}" ] && { echo "未找到主控地址，跳过回传"; exit 0; }
-          diag=$(gh codespace ssh -c "${CODESPACE}" -- 'bash -lc "cd /workspaces/series-hunter; echo PROCS; pgrep -af "node server/index.js" || echo NO_NODE; echo PORT; (ss -ltn 2>/dev/null||netstat -ltn 2>/dev/null)|grep 8787||echo NO_PORT; echo LOG; tail -n 15 /tmp/series-hunter.log 2>/dev/null||echo NO_LOG"' 2>&1 | tr '\n' ' ')
+          diag=$(gh codespace ssh -c "${CODESPACE}" -- 'bash -lc "cd /workspaces/series-hunter; echo PROCS; pgrep -af node.server.index.js || echo NO_NODE; echo LOCAL; curl -s -o /dev/null -m 8 -w root=%{http_code}_ http://127.0.0.1:8787/; curl -s -o /dev/null -m 8 -w appjs=%{http_code}_ http://127.0.0.1:8787/app.js; curl -s -o /dev/null -m 8 -w css=%{http_code}_ http://127.0.0.1:8787/styles.css; curl -s -m 8 http://127.0.0.1:8787/api/health | head -c 150; echo; echo LOG; tail -n 8 /tmp/series-hunter.log 2>/dev/null||echo NO_LOG"' 2>&1 | tr '\n' ' ')
           curl -s -m 20 -G --data-urlencode "from=github-actions" --data-urlencode "diag=${diag:0:1200}" \
             "${peer_api}/api/heartbeat" || true
           exit 0
