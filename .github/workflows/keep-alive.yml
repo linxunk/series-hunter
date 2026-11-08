@@ -1,0 +1,65 @@
+name: 剧集猎人 · 保活守护
+
+# 每 7 分钟巡检一次：
+#   1) Codespaces 被空闲回收 → 自动拉起
+#   2) 容器里的应用进程挂了 → 自动重启
+#   3) 访问一次公网端口 → 刷新 Codespaces 的空闲计时器
+on:
+  schedule:
+    - cron: '*/7 * * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  codespaces: write
+
+concurrency:
+  group: series-hunter-keepalive
+  cancel-in-progress: true
+
+env:
+  CODESPACE: stunning-space-fishstick-5gp6r54r9rjp2ppj4
+  PORT: 8787
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: 检查并拉起 Codespaces
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          state=$(gh api "user/codespaces/${CODESPACE}" --jq .state 2>/dev/null || echo "unknown")
+          echo "当前状态: ${state}"
+          if [ "${state}" != "available" ]; then
+            echo ">>> 正在启动 Codespaces…"
+            gh api -X POST "user/codespaces/${CODESPACE}/start" || true
+            for i in $(seq 1 20); do
+              sleep 15
+              state=$(gh api "user/codespaces/${CODESPACE}" --jq .state 2>/dev/null || echo unknown)
+              echo "    [$i] ${state}"
+              [ "${state}" = "available" ] && break
+            done
+          fi
+
+      - name: 确保应用进程存活
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set +e
+          gh codespace ssh -c "${CODESPACE}" -- \
+            'bash -lc "cd /workspaces/series-hunter && (pgrep -f \"node server/index.js\" >/dev/null || (nohup bash .devcontainer/run.sh > /tmp/series-hunter.log 2>&1 & sleep 2)); pgrep -f \"node server/index.js\" >/dev/null && echo APP_OK || echo APP_DEAD"' \
+            || echo "SSH 未就绪，跳过本次进程检查"
+          exit 0
+
+      - name: 刷新空闲计时器
+        run: |
+          code=$(curl -s -o /dev/null -m 20 -w "%{http_code}" "https://${CODESPACE}-${PORT}.app.github.dev/" || echo 000)
+          echo "公网端口返回: ${code}"
+
+      - name: 汇总
+        run: |
+          echo "✅ 巡检完成 —— ${CODESPACE} 端口 ${PORT}"
+          echo "   应用地址: https://${CODESPACE}-${PORT}.app.github.dev"

@@ -91,9 +91,10 @@ function collect(dir, base = '') {
   const entries = [];
   for (const name of fs.readdirSync(dir)) {
     if (SKIP_DIRS.has(name)) continue;
-    // .github/workflows 需要 workflow 权限，令牌没有时会被 GitHub 拒绝（404）
-    if (base === '.github' && name === 'workflows') {
-      console.log('! 跳过 .github/workflows（需要 workflow scope，请手动在 GitHub 网页添加）');
+    // .github/workflows 需要 workflow scope；没有时 GitHub 会返回 404，
+    // 这种情况会自动降级为「不含工作流」重推一次。
+    if (base === '.github' && name === 'workflows' && !process.env.PUSH_WORKFLOWS) {
+      console.log('! 暂不推送 .github/workflows（未检测到 workflow scope，稍后自动重试）');
       continue;
     }
     const abs = path.join(dir, name);
@@ -125,10 +126,27 @@ async function pushCode(repo) {
   const baseCommit = ref.object.sha;
   const baseTree = await gh(`/repos/${repo.full_name}/git/commits/${baseCommit}`);
 
-  const newTree = await gh(`/repos/${repo.full_name}/git/trees`, {
-    method: 'POST',
-    body: { base_tree: baseTree.tree.sha, tree },
-  });
+  let newTree;
+  try {
+    newTree = await gh(`/repos/${repo.full_name}/git/trees`, {
+      method: 'POST',
+      body: { base_tree: baseTree.tree.sha, tree },
+    });
+  } catch (e) {
+    if (e.status !== 404) throw e;
+    console.log('! 推送含 .github/workflows 的代码被拒（缺 workflow scope），改为不含工作流重试');
+    const fallback = files.filter((f) => !f.path.startsWith('.github/workflows/'));
+    newTree = await gh(`/repos/${repo.full_name}/git/trees`, {
+      method: 'POST',
+      body: {
+        base_tree: baseTree.tree.sha,
+        tree: fallback.map((f) => {
+          const item = tree.find((t) => t.path === f.path);
+          return item;
+        }),
+      },
+    });
+  }
   const commit = await gh(`/repos/${repo.full_name}/git/commits`, {
     method: 'POST',
     body: {
