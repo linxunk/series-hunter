@@ -91,6 +91,9 @@ echo -n "wrapper版本: "; head -3 "$APP_DIR/tools/yt-dlp" 2>&1 | tr '\n' ' '; e
 echo -n "直接执行wrapper: "; bash "$APP_DIR/tools/yt-dlp" --version 2>&1 | head -1
 echo -n "python导入: "; python3 -c "import yt_dlp; print('OK', yt_dlp.version.__version__)" 2>&1 | head -1
 echo -n "pip路径: "; python3 -m pip --version 2>&1 | head -1
+echo "=== 容器内是否有 vscode-server（端口检测靠它）==="
+ps aux | grep -E "[v]scode-server|[c]ode-server|[n]ode .*server-main|[s]shd" | head -5 | cut -c1-120 || true
+echo "--- 全部监听端口 ---"; (ss -ltn 2>/dev/null || netstat -ltn 2>/dev/null) | head -12
 echo "=== 应用进程 ==="; pgrep -af "server/index.js" || echo "NO_APP_PROCESS"
 echo "=== 监听端口 ==="; (ss -ltnp 2>/dev/null || netstat -ltnp 2>/dev/null) | grep -E "8787|Local" | head -6 || echo "NO_SS"
 echo "=== 本机自检 ==="
