@@ -90,9 +90,18 @@ jobs:
           peer_api=$(grep -o "apiBase: '[^']*'" "$GITHUB_WORKSPACE/web/config.js" 2>/dev/null | head -1 | sed "s/apiBase: '//; s/'$//")
           [ -z "${peer_api}" ] && { echo "未找到主控地址，跳过回传"; exit 0; }
           diag=$(gh codespace ssh -c "${CODESPACE}" -- 'bash /workspaces/series-hunter/deploy/ensure-app.sh' 2>&1 | tr '\n' ' ')
+          echo "${diag}" > /tmp/codespace-diag.txt
           curl -s -m 20 -G --data-urlencode "from=github-actions" --data-urlencode "diag=${diag:0:1200}" \
             "${peer_api}/api/heartbeat" || true
           exit 0
+
+      - name: 上传诊断产物
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codespace-diag
+          path: /tmp/codespace-diag.txt
+          if-no-files-found: ignore
 
       - name: 汇总
         run: |
