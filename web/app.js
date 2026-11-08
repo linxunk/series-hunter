@@ -15,6 +15,7 @@
     pollTimer: null,
     lastTask: null,
     searching: false,
+    sameOrigin: false,
     autoFill: localStorage.getItem('sh_autofill') !== '0',
     retryTimer: null,
     autofilling: false,
@@ -74,6 +75,8 @@
   }
 
   function apiBase() {
+    // 同源优先：本地/局域网/VPS 部署时前后端同源，直接用（不依赖任何配置）
+    if (state.sameOrigin) return '';
     const saved = localStorage.getItem('sh_api_base');
     const cfg = (window.APP_CONFIG && window.APP_CONFIG.apiBase) || '';
     return String(saved || cfg || '').replace(/\/+$/, '');
@@ -142,6 +145,13 @@
   /* ---------------- 初始化 ---------------- */
 
   async function init() {
+    // 先探测同源后端：同一个服务/局域网部署时优先使用（省掉手填地址）
+    try {
+      const probe = await fetch('/api/health', { cache: 'no-store' });
+      if (probe.ok) state.sameOrigin = true;
+    } catch (e) {
+      /* 非同源部署，走下面的配置 */
+    }
     try {
       const [plat, health] = await Promise.all([api('/api/platforms'), api('/api/health')]);
       state.platforms = plat.platforms;

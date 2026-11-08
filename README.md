@@ -21,6 +21,16 @@
 
 ---
 
+## 三种部署方式（按推荐顺序）
+
+| 方式 | 适合谁 | 地址 | 备注 |
+| --- | --- | --- | --- |
+| ① **跑在自己电脑**（最省事） | 只想自己用 / 想在手机上用 | `http://<电脑局域网IP>:8787` | 不需要公网、不需要会员账号、不消耗任何额度；家宽 IP 解析成功率最高。手机与电脑连同一 Wi-Fi 即可 |
+| ② **GitHub Codespaces** | 想要一个 24/7 的公网地址 | `https://<codespace>-8787.app.github.dev` | 免费额度 120 核时/月；需在 PORTS 面板把 8787 转发并设为 Public；空闲会停机，靠巡检工作流保活 |
+| ③ **自己的 VPS** | 想要最稳定最可控 | 自己的域名 | `sudo bash deploy/deploy.sh /opt/series-hunter 8787`，可配 nginx + HTTPS |
+
+> 前端会自动探测「同源后端」：把 `web/` 与后端部署在同一台机器/同一地址时，页面零配置直连，不用手填地址。
+
 ## 快速开始
 
 ```bash
@@ -31,7 +41,8 @@ bash tools/install.sh
 npm start          # 或 node server/index.js
 
 # 3. 打开浏览器
-#    http://localhost:8787
+#    http://localhost:8787        （同一台机器）
+#    http://<局域网IP>:8787       （手机连同一 Wi-Fi 访问）
 ```
 
 环境自检：
