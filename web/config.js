@@ -12,11 +12,11 @@ window.APP_CONFIG = {
   //   公开仓库：https://raw.githubusercontent.com/<user>/<repo>/main/web/tunnel.json
   resolverUrl: '',
   resolverUrls: [
-    // 1 分钟缓存，最新鲜
-    'https://gh-proxy.com/https://raw.githubusercontent.com/linxunk/series-hunter/main/web/tunnel.json',
-    // 直连 raw（约 5 分钟缓存）
+    // 直连 raw（约 5 分钟缓存，最准）
     'https://raw.githubusercontent.com/linxunk/series-hunter/main/web/tunnel.json',
-    // 兜底：jsDelivr（缓存较久）
+    // gh-proxy 镜像（60 秒缓存，raw 不通时用）
+    'https://gh-proxy.com/https://raw.githubusercontent.com/linxunk/series-hunter/main/web/tunnel.json',
+    // 兜底：jsDelivr（缓存较久，仅在直连失败时用）
     'https://cdn.jsdelivr.net/gh/linxunk/series-hunter@main/web/tunnel.json',
   ],
   // GitHub Codespaces 云主机（访问不到后端时可一键唤醒）
