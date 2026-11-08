@@ -270,36 +270,43 @@
   }
 
   /** 依次尝试历史后端，成功则切换并刷新 */
-  /** 从「地址簿」读取当前后端地址（gist / 公开仓库的 raw 文件均可） */
+  /** 从「地址簿」读取当前后端地址（公开仓库 raw / CDN 镜像 / gist 均可） */
   async function resolveRemoteBackend() {
     const cfg = window.APP_CONFIG || {};
-    const url = cfg.resolverUrl;
-    if (!url) return;
+    const list = []
+      .concat(cfg.resolverUrl || [])
+      .concat(cfg.resolverUrls || [])
+      .filter(Boolean);
+    for (const url of list) {
+      const base = await fetchResolver(url);
+      if (base) {
+        localStorage.setItem('sh_api_base', base.replace(/\/+$/, ''));
+        state.sameOrigin = false;
+        return base;
+      }
+    }
+  }
+
+  async function fetchResolver(url) {
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 2500);
+      const timer = setTimeout(() => controller.abort(), 3500);
       const res = await fetch(`${url}${url.includes('?') ? '&' : '?'}_=${Date.now()}`, {
         cache: 'no-store',
         signal: controller.signal,
       });
       clearTimeout(timer);
-      if (!res.ok) return;
+      if (!res.ok) return '';
       const ct = res.headers.get('content-type') || '';
-      let base = '';
       if (ct.includes('application/json')) {
         const j = await res.json();
-        base = j.apiBase || j.url || '';
-      } else {
-        const txt = await res.text();
-        const m = txt.match(/apiBase\s*[:=]\s*['\"]([^'\"]+)['\"]/);
-        base = m ? m[1] : '';
+        return j.apiBase || j.url || '';
       }
-      if (base) {
-        localStorage.setItem('sh_api_base', base.replace(/\/+$/, ''));
-        state.sameOrigin = false;
-      }
+      const txt = await res.text();
+      const m = txt.match(/apiBase\s*[:=]\s*['\"]([^'\"]+)['\"]/);
+      return m ? m[1] : '';
     } catch (e) {
-      /* 地址簿不可用时回落到 config.js */
+      return '';
     }
   }
 
