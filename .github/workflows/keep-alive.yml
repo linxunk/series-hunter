@@ -45,14 +45,17 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
         run: |
-          state=$(gh api "user/codespaces/${CODESPACE}" --jq .state 2>/dev/null || echo unknown)
+          # 注意：API 返回的状态是首字母大写（Available），统一转小写再比较
+          state=$(gh api "user/codespaces/${CODESPACE}" --jq .state 2>/dev/null | tr 'A-Z' 'a-z' || echo unknown)
+          state="${state:-unknown}"
           echo "当前状态: ${state}"
           if [ "${state}" != "available" ]; then
             echo ">>> 正在启动 Codespaces…"
             gh api -X POST "user/codespaces/${CODESPACE}/start" || true
             for i in $(seq 1 24); do
               sleep 15
-              state=$(gh api "user/codespaces/${CODESPACE}" --jq .state 2>/dev/null || echo unknown)
+              state=$(gh api "user/codespaces/${CODESPACE}" --jq .state 2>/dev/null | tr 'A-Z' 'a-z' || echo unknown)
+              state="${state:-unknown}"
               echo "    [$i] ${state}"
               [ "${state}" = "available" ] && break
             done

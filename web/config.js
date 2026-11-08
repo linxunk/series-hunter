@@ -1,10 +1,10 @@
 /* 剧集猎人 · 前端运行时配置
  * 部署到 CDN/静态托管时，把这里改成你的后端地址即可：
- *   window.APP_CONFIG = { apiBase: 'https://cc18f1b313d93106-106-14-242-219.serveousercontent.com' };
+ *   window.APP_CONFIG = { apiBase: 'https://630a23f13e9ecb5c-139-224-49-92.serveousercontent.com' };
  * 留空表示与页面同源（前后端同一个服务）。
  */
 window.APP_CONFIG = {
-  apiBase: 'https://cc18f1b313d93106-106-14-242-219.serveousercontent.com',
+  apiBase: 'https://630a23f13e9ecb5c-139-224-49-92.serveousercontent.com',
   // 连接不上后端时，是否弹出「连接服务器」引导框
   showConnectPrompt: true,
   // GitHub Codespaces 云主机（访问不到后端时可一键唤醒）
