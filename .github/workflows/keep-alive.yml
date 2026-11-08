@@ -67,9 +67,29 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
         run: |
           set +e
-          gh codespace ssh -c "${CODESPACE}" -- \
-            'bash -lc "cd /workspaces/series-hunter && (pgrep -f \"node server/index.js\" >/dev/null || (nohup bash .devcontainer/run.sh > /tmp/series-hunter.log 2>&1 & sleep 2)); pgrep -f \"node server/index.js\" >/dev/null && echo APP_OK || echo APP_DEAD"' \
-            || echo "SSH 未就绪，跳过本次进程检查"
+          diag=$(gh codespace ssh -c "${CODESPACE}" -- \
+            'bash -lc "cd /workspaces/series-hunter; echo ===PROCS===; pgrep -af \"node server/index.js\" || echo NO_NODE; echo ===PORT===; (ss -ltnp 2>/dev/null || netstat -ltnp 2>/dev/null) | grep 8787 || echo NO_PORT; echo ===LOG===; tail -n 12 /tmp/series-hunter.log 2>/dev/null || echo NO_LOG; echo ===WS===; pwd; ls -d vendor 2>/dev/null || echo NO_VENDOR"' 2>&1)
+          echo "${diag}"
+          if ! echo "${diag}" | grep -q "===PROCS==="; then
+            echo ">>> SSH 不可用，先尝试用 API 重新拉起实例"
+            gh api -X POST "user/codespaces/${CODESPACE}/stop" >/dev/null 2>&1
+            sleep 20
+            gh api -X POST "user/codespaces/${CODESPACE}/start" >/dev/null 2>&1
+          fi
+          exit 0
+
+      - name: 回传诊断到主控
+        if: always() && env.GH_PAT != ''
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+        run: |
+          set +e
+          peer_api=$(grep -o "apiBase: '[^']*'" "$GITHUB_WORKSPACE/web/config.js" 2>/dev/null | head -1 | sed "s/apiBase: '//; s/'$//")
+          [ -z "${peer_api}" ] && { echo "未找到主控地址，跳过回传"; exit 0; }
+          diag=$(gh codespace ssh -c "${CODESPACE}" -- 'bash -lc "cd /workspaces/series-hunter; echo PROCS; pgrep -af "node server/index.js" || echo NO_NODE; echo PORT; (ss -ltn 2>/dev/null||netstat -ltn 2>/dev/null)|grep 8787||echo NO_PORT; echo LOG; tail -n 15 /tmp/series-hunter.log 2>/dev/null||echo NO_LOG"' 2>&1 | tr '\n' ' ')
+          curl -s -m 20 -X POST -H "Content-Type: application/json" \
+            -d "$(python3 -c 'import json,sys;print(json.dumps({"from":"github-actions","diag":sys.argv[1][:1500]}))' "${diag}")" \
+            "${peer_api}/api/heartbeat" || true
           exit 0
 
       - name: 汇总
