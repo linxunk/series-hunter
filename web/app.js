@@ -276,7 +276,7 @@
     if (!url) return;
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 6000);
+      const timer = setTimeout(() => controller.abort(), 2500);
       const res = await fetch(`${url}${url.includes('?') ? '&' : '?'}_=${Date.now()}`, {
         cache: 'no-store',
         signal: controller.signal,
