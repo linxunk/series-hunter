@@ -73,6 +73,12 @@ if ! pgrep -f "server/index.js" >/dev/null 2>&1; then
 fi
 git rev-parse HEAD > /tmp/app-commit 2>/dev/null || true
 
+echo "=== yt-dlp 现状 ==="
+ls -la /usr/local/bin/yt-dlp /usr/bin/yt-dlp "$HOME/.local/bin/yt-dlp" 2>&1 | head -4
+echo -n "wrapper版本: "; head -3 "$APP_DIR/tools/yt-dlp" 2>&1 | tr '\n' ' '; echo
+echo -n "直接执行wrapper: "; bash "$APP_DIR/tools/yt-dlp" --version 2>&1 | head -1
+echo -n "python导入: "; python3 -c "import yt_dlp; print('OK', yt_dlp.version.__version__)" 2>&1 | head -1
+echo -n "pip路径: "; python3 -m pip --version 2>&1 | head -1
 echo "=== 应用进程 ==="; pgrep -af "server/index.js" || echo "NO_APP_PROCESS"
 echo "=== 监听端口 ==="; (ss -ltnp 2>/dev/null || netstat -ltnp 2>/dev/null) | grep -E "8787|Local" | head -6 || echo "NO_SS"
 echo "=== 本机自检 ==="
