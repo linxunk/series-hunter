@@ -63,8 +63,10 @@ if [ "$need_restart" = "1" ] && pgrep -f "server/index.js" >/dev/null 2>&1; then
   sleep 3
 fi
 
-# ---- 4) 应用不在就启动 ----
-if ! pgrep -f "server/index.js" >/dev/null 2>&1; then
+# ---- 4) 应用不在就启动（PROBE_ONLY=1 时只观察不启动） ----
+if [ "${PROBE_ONLY:-0}" = "1" ]; then
+  echo "=== 探针模式：不启动，只报告 ==="
+elif ! pgrep -f "server/index.js" >/dev/null 2>&1; then
   echo "=== 动作：启动应用 ==="
   mkdir -p ./downloads
   PORT="$PORT" HOST=0.0.0.0 DOWNLOAD_DIR="$APP_DIR/downloads" CORS_ORIGIN="${CORS_ORIGIN:-*}" \

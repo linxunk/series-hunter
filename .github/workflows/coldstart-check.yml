@@ -1,0 +1,50 @@
+name: 剧集猎人 · 冷启动验证
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+env:
+  CODESPACE: upgraded-space-lamp-q7gr4694xg6pf4x5v
+  GH_PAT: ${{ secrets.GH_PAT }}
+
+jobs:
+  coldstart:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: 停机
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: gh api -X POST "user/codespaces/${CODESPACE}/stop" || true
+      - name: 启动并等待
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          sleep 25
+          gh api -X POST "user/codespaces/${CODESPACE}/start" || true
+          for i in $(seq 1 12); do
+            sleep 15
+            st=$(gh api "user/codespaces/${CODESPACE}" --jq .state | tr 'A-Z' 'a-z')
+            code=$(curl -s -o /dev/null -m 10 -w "%{http_code}" "https://${CODESPACE}-8787.app.github.dev/api/health" || echo 000)
+            echo "[$i] state=${st} 免登录端口=${code}"
+            [ "${code}" = "200" ] && break
+          done
+      - name: 探针（看 postStart 是否自动起了应用）
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          diag=$(gh codespace ssh -c "${CODESPACE}" -- 'bash -lc "cd /workspaces/series-hunter; PROBE_ONLY=1 bash deploy/ensure-app.sh"' 2>&1 | tr '\n' ' ')
+          echo "${diag}" > /tmp/coldstart.txt
+          echo "${diag}"
+      - name: 上传诊断产物
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coldstart-diag
+          path: /tmp/coldstart.txt
+          if-no-files-found: ignore
