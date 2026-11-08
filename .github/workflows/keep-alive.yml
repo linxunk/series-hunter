@@ -112,10 +112,6 @@ jobs:
           url=$(gh codespace ssh -c "${CODESPACE}" -- 'cat /tmp/tunnel-url 2>/dev/null' | tr -d '\r\n ')
           [ -z "$url" ] && { echo "容器暂无隧道地址，跳过"; exit 0; }
           echo "容器隧道: $url"
-          if grep -q "apiBase: '$url'" web/config.js 2>/dev/null; then
-            echo "配置已是最新"
-            exit 0
-          fi
           python3 - "$url" <<'PYEOF'
           import re, sys, json
           url = sys.argv[1]
@@ -131,8 +127,12 @@ jobs:
           git config user.name "series-hunter-bot"
           git config user.email "bot@users.noreply.github.com"
           git add web/config.js web/tunnel.json
-          git commit -m "chore: 同步容器隧道地址" >/dev/null 2>&1
-          git push origin HEAD:${{ github.event.repository.default_branch }} && echo "已推送到仓库"
+          if git diff --cached --quiet; then
+            echo "配置已是最新"
+          else
+            git commit -m "chore: 同步容器隧道地址" >/dev/null 2>&1
+            git push origin HEAD:${{ github.event.repository.default_branch }} && echo "已推送到仓库"
+          fi
 
       - name: 汇总
         run: |

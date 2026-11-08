@@ -10,7 +10,7 @@ window.APP_CONFIG = {
   // 「地址簿」：前端运行时从这里读取最新后端地址（隧道换了也不用重新发布前端）
   //   公开 gist：https://gist.githubusercontent.com/<user>/<id>/raw/tunnel.json
   //   公开仓库：https://raw.githubusercontent.com/<user>/<repo>/main/web/tunnel.json
-  resolverUrl: '',
+  resolverUrl: 'https://raw.githubusercontent.com/linxunk/series-hunter/main/web/tunnel.json',
   // GitHub Codespaces 云主机（访问不到后端时可一键唤醒）
   codespace: 'upgraded-space-lamp-q7gr4694xg6pf4x5v',
   codespacePort: 8787,
