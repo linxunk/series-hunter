@@ -103,6 +103,34 @@ jobs:
           path: /tmp/codespace-diag.txt
           if-no-files-found: ignore
 
+      - name: 同步后端地址到前端配置
+        if: always() && env.GH_PAT != ''
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          set +e
+          url=$(gh codespace ssh -c "${CODESPACE}" -- 'cat /tmp/tunnel-url 2>/dev/null' | tr -d '\r\n ')
+          [ -z "$url" ] && { echo "容器暂无隧道地址，跳过"; exit 0; }
+          echo "容器隧道: $url"
+          if grep -q "apiBase: '$url'" web/config.js 2>/dev/null; then
+            echo "配置已是最新"
+            exit 0
+          fi
+          python3 - "$url" <<'PYEOF'
+import re, sys
+url = sys.argv[1]
+p = 'web/config.js'
+s = open(p, encoding='utf-8').read()
+s = re.sub(r"apiBase: '[^']*'", f"apiBase: '{url}'", s)
+open(p, 'w', encoding='utf-8').write(s)
+print('config.js 已更新 →', url)
+PYEOF
+          git config user.name "series-hunter-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add web/config.js
+          git commit -m "chore: 同步容器隧道地址" >/dev/null 2>&1
+          git push origin HEAD:${{ github.event.repository.default_branch }} && echo "已推送到仓库"
+
       - name: 汇总
         run: |
           if [ -z "${GH_PAT}" ]; then
