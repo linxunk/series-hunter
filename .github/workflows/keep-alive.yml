@@ -12,15 +12,16 @@ on:
 permissions:
   actions: read
   contents: read
-  codespaces: write
 
 concurrency:
   group: series-hunter-keepalive
   cancel-in-progress: true
 
 env:
-  CODESPACE: stunning-space-fishstick-5gp6r54r9rjp2ppj4
+  CODESPACE: psychic-garbanzo-7v4q5wr5x4j93r5wg
   PORT: 8787
+  # 优先用仓库 Secret 里的 PAT（需要 codespace 权限），没有则退回内置令牌
+  GH_PAT: ${{ secrets.GH_PAT }}
 
 jobs:
   keep-alive:
@@ -29,7 +30,7 @@ jobs:
     steps:
       - name: 检查并拉起 Codespaces
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
         run: |
           state=$(gh api "user/codespaces/${CODESPACE}" --jq .state 2>/dev/null || echo "unknown")
           echo "当前状态: ${state}"
@@ -46,7 +47,7 @@ jobs:
 
       - name: 确保应用进程存活
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
         run: |
           set +e
           gh codespace ssh -c "${CODESPACE}" -- \
