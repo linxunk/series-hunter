@@ -7,6 +7,10 @@ window.APP_CONFIG = {
   apiBase: 'https://3e559811d01aa4fe-207-46-224-87.serveousercontent.com',
   // 连接不上后端时，是否弹出「连接服务器」引导框
   showConnectPrompt: true,
+  // 「地址簿」：前端运行时从这里读取最新后端地址（隧道换了也不用重新发布前端）
+  //   公开 gist：https://gist.githubusercontent.com/<user>/<id>/raw/tunnel.json
+  //   公开仓库：https://raw.githubusercontent.com/<user>/<repo>/main/web/tunnel.json
+  resolverUrl: '',
   // GitHub Codespaces 云主机（访问不到后端时可一键唤醒）
   codespace: 'upgraded-space-lamp-q7gr4694xg6pf4x5v',
   codespacePort: 8787,
