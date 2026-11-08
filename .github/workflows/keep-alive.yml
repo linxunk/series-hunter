@@ -41,9 +41,8 @@ jobs:
           fi
 
       - name: 检查并拉起 Codespaces
-        if: env.GH_PAT != ''
         env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
         run: |
           state=$(gh api "user/codespaces/${CODESPACE}" --jq .state 2>/dev/null || echo unknown)
           echo "当前状态: ${state}"
@@ -59,9 +58,8 @@ jobs:
           fi
 
       - name: 确保应用进程存活
-        if: env.GH_PAT != ''
         env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
         run: |
           set +e
           gh codespace ssh -c "${CODESPACE}" -- \
