@@ -15,7 +15,8 @@ on:
 
 permissions:
   actions: read
-  contents: read
+  # 需要推送 config.js / tunnel.json（后端地址簿）到仓库
+  contents: write
 
 concurrency:
   group: series-hunter-keepalive
