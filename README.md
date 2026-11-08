@@ -232,6 +232,16 @@ CORS_ORIGIN=https://cdn.example.com   # 启动时设置；用 * 表示不限制
 前端也支持运行期手动切换后端：连不上时会弹出「连接服务器」框，填入后端地址后保存在浏览器本地（`localStorage`）。
 **后端部署好后不必重新发布前端**——点页面右上角「🔌 后端」填一次地址即可（对所有访问者生效则改 `web/config.js` 的 `apiBase` 后重新发布）。
 
+### 云主机休眠与唤醒（GitHub Codespaces）
+
+Codespaces 空闲 30 分钟会自动停机，端口随之 404。工具做了三层应对：
+
+| 层级 | 做法 |
+| --- | --- |
+| 容器自保活 | `.devcontainer/run.sh` 里每 8 分钟调一次 Codespaces 的 start 接口，刷新空闲计时器，云主机基本不会停 |
+| 页面一键唤醒 | 页面右上「🔌 后端」→ 填一次 GitHub 令牌（只存本机浏览器）→「⚡ 唤醒云主机」，停机时点一下就拉起，页面会自动重试直到恢复 |
+| GitHub Actions 巡检 | `.github/workflows/keep-alive.yml` 每 7 分钟巡检（拉起实例 / 重启应用进程 / 刷新计时器）。**该文件受 GitHub 保护，需要令牌带 `workflow` scope，或在 GitHub 网页手动添加** |
+
 ### 保活脚本（本地跑 + 公网隧道时用）
 
 ```bash

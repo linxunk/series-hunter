@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Codespaces 启动脚本：拉起剧集猎人后端，并保持 Codespaces 永不休眠
+# Codespaces 启动脚本：拉起剧集猎人后端，并尝试保持 Codespaces 永不休眠
 set -uo pipefail
 
 cd "$(dirname "$0")/.."
@@ -12,23 +12,35 @@ export TZ=Asia/Shanghai
 
 mkdir -p "$DOWNLOAD_DIR"
 
-# ---- 保持 Codespaces 不被空闲回收 ----
-# Codespaces 空闲 30 分钟会自动停机（端口随即 404）。
-# 规律调用一次 start 接口即可刷新空闲计时器，让云主机一直在线。
+# ---------------------------------------------------------------------------
+# 保活：Codespaces 空闲 30 分钟会自动停机（端口随即 404）。
+# 规律调用 start 接口可刷新空闲计时器；这里同时把结果心跳回主控，
+# 便于确认容器内的令牌是否有权限自行保活。
+# ---------------------------------------------------------------------------
 keep_codespace_awake() {
   local name="${CODESPACE_NAME:-}"
   local token="${GITHUB_TOKEN:-}"
   [ -z "$name" ] && return 0
+
+  # 主控地址：从本项目的 web/config.js 里读 apiBase（隧道地址会变，故不写死）
+  local peer_api=""
+  peer_api="$(grep -o "apiBase: '[^']*'" web/config.js 2>/dev/null | head -1 | sed "s/apiBase: '//; s/'$//")"
+
   while true; do
-    sleep 480   # 8 分钟一次
+    sleep 480   # 8 分钟
+    local resp="" code=""
     if [ -n "$token" ]; then
-      curl -s -X POST \
+      resp="$(curl -s -m 25 -X POST \
         -H "Authorization: Bearer ${token}" \
         -H "Accept: application/vnd.github+json" \
-        "https://api.github.com/user/codespaces/${name}/start" >/dev/null 2>&1 || true
+        "https://api.github.com/user/codespaces/${name}/start" 2>/dev/null)"
+      code="$(echo "$resp" | head -c 120)"
     fi
-    # 备用：访问自己的公网端口也会刷新计时器
-    curl -s -o /dev/null -m 10 "https://${name}-${PORT}.app.github.dev/" >/dev/null 2>&1 || true
+    if [ -n "$peer_api" ]; then
+      curl -s -m 15 -X POST -H "Content-Type: application/json" \
+        -d "{\"from\":\"codespace:${name}\",\"at\":$(date +%s),\"resp\":\"${code}\"}" \
+        "${peer_api}/api/heartbeat" >/dev/null 2>&1 || true
+    fi
   done
 }
 keep_codespace_awake &

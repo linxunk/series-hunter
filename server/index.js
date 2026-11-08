@@ -135,6 +135,16 @@ function serveFile(req, res, filePath, downloadName) {
 async function handleApi(req, res, parsed) {
   const { pathname, query } = parsed;
 
+  if (pathname === '/api/heartbeat' && req.method === 'POST') {
+    try {
+      const body = await readBody(req);
+      log.info('heartbeat', JSON.stringify(body).slice(0, 500));
+      return sendJson(res, 200, { ok: true, receivedAt: Date.now() });
+    } catch (e) {
+      return sendError(res, 400, e.message);
+    }
+  }
+
   if (pathname === '/api/health') {
     const version = await ytdlp.checkInstalled();
     return sendJson(res, 200, {

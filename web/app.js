@@ -207,14 +207,28 @@
     }
     if (status) status.textContent = '正在唤醒…';
     try {
-      const res = await fetch(`https://api.github.com/user/codespaces/${encodeURIComponent(name)}/start`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || `HTTP ${res.status}`);
+      // 云主机可能正在停机中（GitHub 会回 "already running"），需要重试
+      let lastErr = null;
+      let sent = false;
+      for (let i = 0; i < 10 && !sent; i += 1) {
+        try {
+          const res = await fetch(`https://api.github.com/user/codespaces/${encodeURIComponent(name)}/start`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+          });
+          if (res.ok) {
+            sent = true;
+            break;
+          }
+          const err = await res.json().catch(() => ({}));
+          lastErr = new Error(err.message || `HTTP ${res.status}`);
+        } catch (e) {
+          lastErr = e;
+        }
+        if (status) status.textContent = `等待停机完成并重试…（${i + 1}）`;
+        await new Promise((r) => setTimeout(r, 8000));
       }
+      if (!sent) throw lastErr || new Error('唤醒失败');
       if (status) status.textContent = '唤醒指令已发送，正在等待上线…';
       // 等待后端就绪
       for (let i = 0; i < 40; i += 1) {
