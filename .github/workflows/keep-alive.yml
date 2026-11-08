@@ -89,7 +89,7 @@ jobs:
           set +e
           peer_api=$(grep -o "apiBase: '[^']*'" "$GITHUB_WORKSPACE/web/config.js" 2>/dev/null | head -1 | sed "s/apiBase: '//; s/'$//")
           [ -z "${peer_api}" ] && { echo "未找到主控地址，跳过回传"; exit 0; }
-          diag=$(gh codespace ssh -c "${CODESPACE}" -- 'bash -lc "cd /workspaces/series-hunter 2>/dev/null || cd /; echo ===PWD===; pwd; echo ===LS===; ls -la /workspaces/series-hunter 2>&1 | head -12; echo ===DEV===; ls -la /workspaces/series-hunter/.devcontainer 2>&1 | head -6; echo ===NODE===; which node; node -v 2>&1; echo ===PS===; ps aux | grep -c node; echo ===TMP===; ls -la /tmp 2>&1 | head -10; echo ===DC===; cat /workspaces/series-hunter/.devcontainer/devcontainer.json 2>&1 | head -20"' 2>&1 | tr '\n' ' ')
+          diag=$(gh codespace ssh -c "${CODESPACE}" -- 'bash -lc "echo NODE=$(which node 2>&1) $(node -v 2>&1); echo NODECOUNT=$(ps aux|grep -c [n]ode); echo PSNODE=$(ps aux | grep [n]ode | head -3 | tr \"\\n\" \"|\"); echo TMPLOG=$(ls -la /tmp/*.log 2>&1 | head -4 | tr \"\\n\" \"|\"); echo DCPOST=$(grep -E postStart|postCreate /workspaces/series-hunter/.devcontainer/devcontainer.json | tr \"\\n\" \"|\"); echo LISTEN=$( (ss -ltn 2>/dev/null||netstat -ltn 2>/dev/null) | grep -E \"8787|LISTEN\" | head -5 | tr \"\\n\" \"|\")"' 2>&1 | tr '\n' ' ')
           curl -s -m 20 -G --data-urlencode "from=github-actions" --data-urlencode "diag=${diag:0:1200}" \
             "${peer_api}/api/heartbeat" || true
           exit 0
