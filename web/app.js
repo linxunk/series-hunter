@@ -146,9 +146,14 @@
 
   async function init() {
     // 先探测同源后端：同一个服务/局域网部署时优先使用（省掉手填地址）
+    // 注意：静态托管/CDN 对未知路径会回落成 200 的 HTML，必须严格校验是健康接口的 JSON
     try {
       const probe = await fetch('/api/health', { cache: 'no-store' });
-      if (probe.ok) state.sameOrigin = true;
+      const ct = probe.headers.get('content-type') || '';
+      if (probe.ok && ct.includes('application/json')) {
+        const j = await probe.json().catch(() => null);
+        if (j && j.ok && typeof j.ytdlp === 'string') state.sameOrigin = true;
+      }
     } catch (e) {
       /* 非同源部署，走下面的配置 */
     }
