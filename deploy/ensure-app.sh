@@ -46,8 +46,28 @@ tunnel_up() {
   curl -fsS -o /dev/null -m 12 "${u}/api/health" 2>/dev/null
 }
 if ! tunnel_up; then
-  if command -v ssh >/dev/null 2>&1; then
-    echo "=== 动作：建立容器公网隧道 ==="
+  # 优先 Cloudflare 快速隧道（边缘质量好、存活久），失败再用 serveo
+  if [ ! -x /usr/local/bin/cloudflared ]; then
+    (curl -fsSL --max-time 120 https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared && chmod +x /usr/local/bin/cloudflared) >/dev/null 2>&1 || true
+  fi
+  if [ -x /usr/local/bin/cloudflared ]; then
+    echo "=== 动作：建立 Cloudflare 隧道 ==="
+    pkill -f cloudflared 2>/dev/null || true
+    sleep 1
+    : > /tmp/tunnel.log
+    setsid nohup /usr/local/bin/cloudflared tunnel --no-autoupdate --url "http://127.0.0.1:${PORT}" > /tmp/tunnel.log 2>&1 < /dev/null &
+    for i in $(seq 1 30); do
+      sleep 2
+      u="$(tr -d '\r' < /tmp/tunnel.log 2>/dev/null | grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' | tail -1)"
+      if [ -n "$u" ]; then
+        echo "$u" > /tmp/tunnel-url
+        echo "隧道就绪（cloudflare）：$u"
+        break
+      fi
+    done
+  fi
+  if [ ! -f /tmp/tunnel-url ] && command -v ssh >/dev/null 2>&1; then
+    echo "=== 动作：建立 serveo 隧道（兜底）==="
     pkill -f "serveo.net" 2>/dev/null || true
     sleep 2
     : > /tmp/tunnel.log
@@ -58,12 +78,12 @@ if ! tunnel_up; then
       u="$(tr -d '\r' < /tmp/tunnel.log 2>/dev/null | grep -oE 'https://[a-z0-9.-]*serveousercontent\.com' | tail -1)"
       if [ -n "$u" ]; then
         echo "$u" > /tmp/tunnel-url
-        echo "隧道就绪：$u"
+        echo "隧道就绪（serveo）：$u"
         break
       fi
     done
-    [ -f /tmp/tunnel-url ] || echo "隧道建立失败（稍后重试）"
   fi
+  [ -f /tmp/tunnel-url ] || echo "隧道建立失败（稍后重试）"
 else
   echo "=== 隧道已在运行：$(cat /tmp/tunnel-url 2>/dev/null) ==="
 fi

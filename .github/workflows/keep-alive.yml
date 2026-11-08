@@ -115,7 +115,7 @@ jobs:
             id=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts" --jq '.artifacts[]?|select(.name=="codespace-diag")|.id' 2>/dev/null | head -1)
             [ -z "$id" ] && return 0
             gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip" > /tmp/diag.zip 2>/dev/null || return 0
-            unzip -p /tmp/diag.zip 2>/dev/null | grep -oE 'https://[a-z0-9.-]*serveousercontent\.com' | head -1
+            unzip -p /tmp/diag.zip 2>/dev/null | grep -oE 'https://[a-z0-9.-]*\.(trycloudflare\.com|serveousercontent\.com|lhr\.life)' | head -1
           }
           alive() {
             [ -n "$1" ] && curl -fsS -o /dev/null -m 20 "${1}/api/health" 2>/dev/null
